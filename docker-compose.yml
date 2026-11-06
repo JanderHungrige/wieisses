@@ -13,6 +13,7 @@ services:
       APP_ENV: local
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD (at least 10 characters)}
       NODE_OPTIONS: "--max-old-space-size=128"
+      VOICE_URL: http://voice:5000
     volumes:
       - wieisses-data:/data
     read_only: true
@@ -30,6 +31,29 @@ services:
         reservations:
           cpus: "0.05"
           memory: 48M
+
+  # Thorsten-Voice; reachable by the app only (no published port).
+  voice:
+    build:
+      context: voice
+    image: wieisses-voice:${BUILD_VERSION:-local}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
 volumes:
   wieisses-data:

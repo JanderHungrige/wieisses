@@ -94,6 +94,15 @@ const MIGRATIONS: readonly string[] = Object.freeze([
     value TEXT NOT NULL
   );
   `,
+  // v2 — Thorsten voice clips, one per distinct spoken text (doc 01, "Voice").
+  `
+  CREATE TABLE voice_clip (
+    key TEXT PRIMARY KEY,
+    text TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ]);
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

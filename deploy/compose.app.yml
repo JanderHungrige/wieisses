@@ -18,6 +18,8 @@ services:
       APP_ENV: ${APP_ENV:-prod}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in the env file}
       NODE_OPTIONS: "--max-old-space-size=128"
+      # The Thorsten voice below, on this stack's own network only.
+      VOICE_URL: http://voice:5000
     # The database and uploads. Never `down -v`: that deletes every answer.
     volumes:
       - wieisses-data:/data
@@ -39,6 +41,35 @@ services:
     # Same probe as the Dockerfile HEALTHCHECK; auto-deploy.sh waits for "healthy".
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Thorsten-Voice (Piper). No published port: only the app above reaches it, as voice:5000.
+  # It holds the model (~400 MB) only while voicing and releases it after two idle minutes.
+  voice:
+    image: ${REGISTRY:-ghcr.io}/${OWNER:-janderhungrige}/${VOICE_IMAGE:-wieisses-voice}:${IMAGE_TAG}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    pids_limit: 64
+    # One of the host's two cores at most, and a low weight: the other projects come first.
+    cpus: 1.0
+    cpu_shares: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=2).status == 200 else 1)"]
       interval: 30s
       timeout: 3s
       retries: 3

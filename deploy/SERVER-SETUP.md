@@ -89,6 +89,25 @@ docker compose --env-file deploy/.env.prod -f deploy/compose.app.yml start app
 A copy that exists only on the host goes back into the volume first:
 `docker cp ~/backups/wieisses/prod/<file>.sqlite.gz wieisses-prod-app-1:/data/backups/`.
 
+## 5b. Thorsten voice (service `voice`)
+
+A second container in the same stack, `wieisses-prod-voice-1`, image
+`ghcr.io/janderhungrige/wieisses-voice:main` (built by `.github/workflows/voice.yml` only when
+`voice/` changes). No port is published; the app reaches it as `http://voice:5000`.
+
+- Limits: 1 CPU, 768 MB. It loads the Thorsten model (~400 MB) on the first text and releases
+  it after two idle minutes, so most of the time it uses ~30 MB.
+- The first full voicing (~75 fixed phrases + every topic, question and answer) takes a few
+  minutes; the admin's Fragen page shows the progress. Until a text has its clip, the tablets
+  read it with their own voice.
+- After a change under `deploy/` that adds or changes the service, `git pull` in
+  `/opt/wieisses` — the cron then creates it on its next tick.
+
+```bash
+docker logs --since 10m wieisses-prod-voice-1      # "synthesized" lines with seconds per text
+docker stats --no-stream wieisses-prod-voice-1
+```
+
 ## 6. Tablets
 
 1. On each tablet open `https://wieisses.w3rth.de/admin/`, log in, **Tablets → Dieses Gerät

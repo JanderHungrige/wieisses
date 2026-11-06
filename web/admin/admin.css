@@ -601,3 +601,75 @@ fieldset {
     grid-column: 1 / -1;
   }
 }
+
+/* ── Drafts and the Thorsten voice ───────────────────────────────── */
+
+.badge.changed {
+  background: #fff1b8;
+  color: #5c4500;
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 1rem -1rem -1rem;
+  padding: 0.75rem 1rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: 0 -4px 16px rgb(0 0 0 / 0.06);
+}
+
+.save-bar .save-count {
+  margin: 0;
+  font-weight: 600;
+}
+
+.save-bar .status {
+  flex: 1 1 14rem;
+  margin: 0;
+}
+
+.voice-panel progress {
+  width: min(220px, 50%);
+  vertical-align: middle;
+}
+
+.voice-state {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+}
+
+.voice-state.pending {
+  color: #7a5b00;
+}
+
+.voice-state.missing {
+  color: var(--muted);
+}
+
+.voice-state.error {
+  color: var(--bad);
+}
+
+.voice-state button {
+  min-height: 36px;
+  padding: 0.2rem 0.7rem;
+}
+
+button.play {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0.2rem 0.6rem;
+}

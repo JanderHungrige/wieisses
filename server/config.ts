@@ -11,6 +11,8 @@ export type Config = {
   backupDir: string;
   staticDir: string;
   adminPassword: string;
+  /** The Thorsten voice service, e.g. http://voice:5000; null switches voicing off. */
+  voiceUrl: string | null;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -30,5 +32,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     backupDir: join(dataDir, 'backups'),
     staticDir: resolve(env.STATIC_DIR ?? join(import.meta.dirname, '..', 'dist')),
     adminPassword,
+    voiceUrl: env.VOICE_URL ? env.VOICE_URL.replace(/\/+$/, '') : null,
   };
 }

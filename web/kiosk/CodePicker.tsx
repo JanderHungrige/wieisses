@@ -2,6 +2,7 @@
 // Every prompt and every pick is read aloud (doc 01, "The child's flow" step 2).
 import { useEffect, useState } from 'preact/hooks';
 import { ANIMALS, COLOURS, FRUITS, animal, colour, fruit, type CodePicks } from '../../shared/catalog.ts';
+import { PHRASE, gradePhrase } from '../../shared/phrases.ts';
 import { say } from '../lib/speech.ts';
 import { Prompt } from './Prompt.tsx';
 
@@ -14,18 +15,8 @@ type Props = {
 };
 
 const PROMPTS: Record<'new' | 'returning', Record<Step, string>> = {
-  new: {
-    animal: 'Such dir ein Tier aus!',
-    color: 'Jetzt eine Farbe!',
-    fruit: 'Und jetzt ein Obst!',
-    grade: 'In welche Klasse gehst du?',
-  },
-  returning: {
-    animal: 'Welches Tier ist in deinem Geheimzeichen?',
-    color: 'Welche Farbe?',
-    fruit: 'Welches Obst?',
-    grade: '',
-  },
+  new: { animal: PHRASE.pickAnimalNew, color: PHRASE.pickColourNew, fruit: PHRASE.pickFruitNew, grade: PHRASE.pickGrade },
+  returning: { animal: PHRASE.pickAnimal, color: PHRASE.pickColour, fruit: PHRASE.pickFruit, grade: '' },
 };
 
 export function CodePicker({ mode, grades, onComplete }: Props) {
@@ -105,7 +96,7 @@ function Choices({ step, grades, busy, onPick, onGrade }: ChoicesProps) {
     return (
       <div class="grid grades">
         {grades.map((g) => (
-          <button type="button" class="tile grade" disabled={busy} onClick={() => (say(`Klasse ${g}`, true), onGrade(g))}>
+          <button type="button" class="tile grade" disabled={busy} onClick={() => (say(gradePhrase(g), true), onGrade(g))}>
             <span class="big">{g}</span>
             <span class="label">Klasse {g}</span>
           </button>

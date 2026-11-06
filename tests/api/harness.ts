@@ -29,7 +29,7 @@ export type Call = { method?: string; json?: unknown; raw?: Buffer; type?: strin
 
 export type TestApp = Awaited<ReturnType<typeof startTestApp>>;
 
-export async function startTestApp(options: { seed?: boolean; now?: string } = {}) {
+export async function startTestApp(options: { seed?: boolean; now?: string; voiceUrl?: string } = {}) {
   const db = openDatabase(':memory:');
   let now = new Date(options.now ?? THURSDAY);
   await migrate(db, null, now);
@@ -42,6 +42,7 @@ export async function startTestApp(options: { seed?: boolean; now?: string } = {
     staticDir: join(tmpdir(), 'wieisses-no-dist'),
     adminPassword: PASSWORD,
     log: silentLog,
+    voiceUrl: options.voiceUrl ?? null,
     now: () => now,
   });
   const server = createServer(app);
@@ -92,6 +93,7 @@ export async function startTestApp(options: { seed?: boolean; now?: string } = {
       return setCookie.split(';')[0] ?? '';
     },
     async close() {
+      await app.voice.idle();
       await new Promise<void>((resolve) => server.close(() => resolve()));
       db.close();
       rmSync(mediaDir, { recursive: true, force: true });

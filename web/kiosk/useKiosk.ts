@@ -43,7 +43,7 @@ export function useKiosk() {
     try {
       const next = await api<KioskConfig>('/api/v1/kiosk/config');
       setConfig(next);
-      initSpeech(next.settings.speechRate);
+      initSpeech(next.settings.speechRate, next.voice);
       setPhase({ name: 'start' });
     } catch (err) {
       const unregistered = err instanceof ApiError && err.code === 'device_not_registered';

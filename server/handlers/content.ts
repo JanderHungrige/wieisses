@@ -1,7 +1,8 @@
 // The question editor: topics, questions and options (doc 01, "Admin"). Answered items are
 // deactivated, never deleted, and an answered question keeps its kind.
 import type { z } from 'zod';
-import type { OptionCreate, OptionPatch, QuestionCreate, QuestionPatch, TopicCreate, TopicPatch } from '../../shared/schema.ts';
+import { normaliseText } from '../../shared/phrases.ts';
+import type { AdminTopic, OptionCreate, OptionPatch, QuestionCreate, QuestionPatch, TopicCreate, TopicPatch } from '../../shared/schema.ts';
 import { adminTopics, getQuestion, getTopic } from '../adapters/content-store.ts';
 import {
   deleteOption,
@@ -37,7 +38,20 @@ function deleted(result: DeleteResult, what: string): Reply {
 }
 
 export function listTopics(app: App): Reply {
-  return ok(adminTopics(app.db));
+  const topics = adminTopics(app.db);
+  const texts = topics.flatMap((t) => [t.name, ...t.questions.flatMap((q) => [q.text, ...q.options.map((o) => o.label)])]);
+  const urls = app.voice.urls(texts);
+  const voiceUrl = (text: string) => urls[normaliseText(text)] ?? null;
+  const voiced: AdminTopic[] = topics.map((t) => ({
+    ...t,
+    voiceUrl: voiceUrl(t.name),
+    questions: t.questions.map((q) => ({
+      ...q,
+      voiceUrl: voiceUrl(q.text),
+      options: q.options.map((o) => ({ ...o, voiceUrl: voiceUrl(o.label) })),
+    })),
+  }));
+  return ok(voiced);
 }
 
 export function createTopic(app: App, input: z.output<typeof TopicCreate>): Reply {
