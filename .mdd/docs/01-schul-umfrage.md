@@ -150,9 +150,9 @@ test_files:
   - tests/api/voice.test.ts
   - tests/api/fake-voice.ts
 data_flow: greenfield
-last_synced: 2026-11-06
-status: in_progress
-phase: integration-pending
+last_synced: 2026-11-07
+status: complete
+phase: all
 mdd_version: 11
 tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, piper, admin-panel, sqlite]
 path: Umfrage
@@ -523,7 +523,15 @@ no tokens.
   a school survey, not for a commercial product. piper-tts is GPL-3.0 and runs as a separate
   service (see `voice/THIRD_PARTY.md`).
 - The first full voicing (≈ 75 fixed phrases + all content) takes a few minutes on the host's
-  CPU; until a clip exists the tablet voice speaks that text.
+  CPU; until a clip exists the tablet voice speaks that text. Measured on the host on
+  2026-11-07: 0.3–2 s per text on one core, 109 texts in about 90 s, ~240 MB while voicing.
+- A run that finds the voice service unreachable stops and is **not retried by itself**. It
+  happened on the first rollout (the app restarted before the voice container existed); the
+  admin's "Fehlende vertonen" or an app restart starts it again. In normal rolls the voice
+  service rolls first, so the app's start-up run finds it.
+- Pulling the voice image (one 114 MB layer) failed three times on the host with containerd
+  "failed to Lchown … no such file" before it succeeded; auto-deploy retries every minute, so
+  it healed by itself — the same transient error TopRun's log shows.
 - A child's grade is fixed at sign-up; there is no school-year rollover (all grades +1) yet —
   the admin can only change grades one code at a time.
 - A tablet whose browser data is cleared loses its device cookie and must be registered again
