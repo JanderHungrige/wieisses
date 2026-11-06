@@ -1,0 +1,10 @@
+# wieisses auto-deploy — poll GHCR every minute and roll new images. Install in ROOT's crontab
+# with `sudo /opt/wieisses/deploy/install-cron.sh` (or paste the line with `sudo crontab -e`).
+# Offset :23 — taken: :00 battlefuel, :08 toprun, :15 ninanatur, :30 funding-tender-tracker, :45 3dmap2.
+#
+# * * * * * sleep 23; cd /opt/wieisses && /usr/bin/env bash deploy/roll-all.sh >> /var/log/wieisses-deploy.log 2>&1
+#
+# Nightly backup, in the operator's crontab (docker works without sudo there), clear of every
+# deploy minute:
+#
+# 41 3 * * * /opt/wieisses/deploy/backup.sh >> $HOME/backups/wieisses/backup.log 2>&1

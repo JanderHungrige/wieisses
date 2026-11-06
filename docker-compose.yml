@@ -1,0 +1,35 @@
+# Local check of the production image (the host uses deploy/compose.app.yml with the GHCR image):
+#   ADMIN_PASSWORD=some-long-password docker compose up --build    # → http://localhost:8082
+services:
+  app:
+    build:
+      context: .
+    image: wieisses:${BUILD_VERSION:-local}
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-8082}:8080"
+    environment:
+      APP_ENV: local
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD (at least 10 characters)}
+      NODE_OPTIONS: "--max-old-space-size=128"
+    volumes:
+      - wieisses-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 192M
+        reservations:
+          cpus: "0.05"
+          memory: 48M
+
+volumes:
+  wieisses-data:

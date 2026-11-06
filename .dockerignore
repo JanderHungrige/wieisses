@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+.git
+.gitignore
+.github
+.env
+.env.*
+.data
+.data.log
+.mdd
+.claude
+deploy
+*.log
+.DS_Store
+Dockerfile
+docker-compose.yml

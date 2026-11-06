@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "jsx": "preserve",
+    "erasableSyntaxOnly": true
+  },
+  "include": ["server", "shared", "tests", "dev", "vitest.config.ts"]
+}

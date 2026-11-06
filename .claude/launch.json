@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wieisses-api",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "APP_ENV=dev",
+        "ADMIN_PASSWORD=dev-password-123",
+        "DATA_DIR=.data",
+        "PORT=8092",
+        "/Users/jwh/.nvm/versions/node/v24.21.0/bin/node",
+        "--watch",
+        "server/main.ts"
+      ],
+      "port": 8092
+    },
+    {
+      "name": "wieisses-web",
+      "runtimeExecutable": "/Users/jwh/.nvm/versions/node/v24.21.0/bin/node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5173", "--strictPort"],
+      "port": 5173
+    }
+  ]
+}

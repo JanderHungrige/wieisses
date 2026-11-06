@@ -1,0 +1,32 @@
+{
+  "name": "wieisses",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Wie isses? — Tablet-Umfrage für Grundschulkinder mit Admin-Auswertung",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "APP_ENV=dev ADMIN_PASSWORD=dev-password-123 DATA_DIR=.data PORT=8092 node --watch server/main.ts",
+    "build": "vite build",
+    "start": "node server/main.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@fontsource/andika": "^5.3.0",
+    "@types/node": "^24.19.2",
+    "chart.js": "^4.6.1",
+    "preact": "^11.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}

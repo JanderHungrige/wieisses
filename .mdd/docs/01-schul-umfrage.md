@@ -1,0 +1,436 @@
+---
+id: 01-schul-umfrage
+title: Schul-Umfrage — tablet survey for primary school children with admin panel
+edition: wieisses
+depends_on: []
+relates: []
+source_files:
+  - shared/catalog.ts
+  - shared/schema.ts
+  - server/main.ts
+  - server/config.ts
+  - server/context.ts
+  - server/log.ts
+  - server/server.ts
+  - server/admin-routes.ts
+  - server/seed.ts
+  - server/http/dispatch.ts
+  - server/http/reply.ts
+  - server/http/request.ts
+  - server/http/router.ts
+  - server/http/static.ts
+  - server/domain/answers.ts
+  - server/domain/csv.ts
+  - server/domain/day.ts
+  - server/domain/media-type.ts
+  - server/domain/rate-limit.ts
+  - server/domain/secrets.ts
+  - server/domain/sessions.ts
+  - server/domain/stats.ts
+  - server/handlers/access.ts
+  - server/handlers/admin-auth.ts
+  - server/handlers/content.ts
+  - server/handlers/health.ts
+  - server/handlers/kiosk.ts
+  - server/handlers/media.ts
+  - server/handlers/results.ts
+  - server/adapters/db.ts
+  - server/adapters/access-store.ts
+  - server/adapters/content-store.ts
+  - server/adapters/content-write.ts
+  - server/adapters/media-store.ts
+  - server/adapters/results-store.ts
+  - server/adapters/settings-store.ts
+  - server/adapters/submission-store.ts
+  - server/ops/backup.ts
+  - web/lib/api.ts
+  - web/lib/speech.ts
+  - web/index.html
+  - web/kiosk/main.tsx
+  - web/kiosk/Kiosk.tsx
+  - web/kiosk/useKiosk.ts
+  - web/kiosk/useIdle.ts
+  - web/kiosk/CodePicker.tsx
+  - web/kiosk/QuestionFlow.tsx
+  - web/kiosk/Prompt.tsx
+  - web/kiosk/screens.tsx
+  - web/kiosk/kiosk.css
+  - web/admin/index.html
+  - web/admin/main.tsx
+  - web/admin/App.tsx
+  - web/admin/adminApi.ts
+  - web/admin/charts.tsx
+  - web/admin/colours.ts
+  - web/admin/fields.tsx
+  - web/admin/format.ts
+  - web/admin/admin.css
+  - web/admin/pages/Codes.tsx
+  - web/admin/pages/Content.tsx
+  - web/admin/pages/Dashboard.tsx
+  - web/admin/pages/Devices.tsx
+  - web/admin/pages/Filters.tsx
+  - web/admin/pages/QuestionEditor.tsx
+  - web/admin/pages/Settings.tsx
+  - web/admin/pages/TopicResults.tsx
+  - dev/demo-answers.ts
+  - Dockerfile
+  - docker-compose.yml
+  - deploy/compose.app.yml
+  - deploy/auto-deploy.sh
+  - deploy/roll-all.sh
+  - deploy/install-cron.sh
+  - deploy/backup.sh
+  - deploy/SERVER-SETUP.md
+  - .github/workflows/deploy.yml
+  - .github/workflows/healthz.yml
+routes:
+  - GET /healthz
+  - GET /api/v1/kiosk/config
+  - POST /api/v1/kiosk/codes
+  - POST /api/v1/kiosk/session
+  - POST /api/v1/kiosk/submissions
+  - POST /api/v1/admin/login
+  - POST /api/v1/admin/logout
+  - GET /api/v1/admin/me
+  - GET|POST /api/v1/admin/topics
+  - PATCH|DELETE /api/v1/admin/topics/:id
+  - POST /api/v1/admin/topics/:id/questions
+  - PATCH|DELETE /api/v1/admin/questions/:id
+  - POST /api/v1/admin/questions/:id/options
+  - PATCH|DELETE /api/v1/admin/options/:id
+  - POST /api/v1/admin/media
+  - GET /api/v1/admin/codes
+  - PATCH /api/v1/admin/codes/:id
+  - GET|POST /api/v1/admin/devices
+  - PATCH /api/v1/admin/devices/:id
+  - GET|PUT /api/v1/admin/settings
+  - GET /api/v1/admin/results/summary
+  - GET /api/v1/admin/results/questions/:id
+  - GET /api/v1/admin/results/export.csv
+  - GET /media/:file
+models:
+  - topic
+  - question
+  - answer_option
+  - child_code
+  - submission
+  - answer
+  - device
+  - admin_session
+  - setting
+test_files:
+  - tests/unit/day.test.ts
+  - tests/unit/codes.test.ts
+  - tests/unit/answers.test.ts
+  - tests/unit/stats.test.ts
+  - tests/api/kiosk.test.ts
+  - tests/api/admin.test.ts
+  - tests/api/results.test.ts
+  - tests/api/harness.ts
+data_flow: greenfield
+last_synced: 2026-11-06
+status: complete
+phase: all
+mdd_version: 11
+tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, admin-panel, sqlite]
+path: Umfrage
+integration_contracts: []
+satisfies_contracts: []
+known_issues: []
+security_read_sites: []
+sister_projects: [~/Code/TopRun, ~/Code/NinaNatur]
+---
+
+# 01 — Schul-Umfrage
+
+## Purpose
+
+Children of a primary school (grades 1–4, ages 6–10) give their opinion on everyday
+topics — lunch, homework supervision, the carers, the activities on offer — on shared
+tablets, daily or whenever they like. Every question is shown as a **picture, as text and
+read aloud**, so a child who cannot read yet can answer alone. Staff see the results over
+time, as charts, in a password-protected admin panel, and maintain the topics and questions
+there.
+
+Live at `https://wieisses.w3rth.de` (Nginx Proxy Manager → `172.17.0.1:8082`).
+
+## Architecture
+
+```
+tablet (kiosk SPA, /)          admin browser (admin SPA, /admin/)
+        │  device cookie                │  admin session cookie
+        ▼                               ▼
+┌────────────────────────── Node 24 container :8080 ──────────────────────────┐
+│ server/main.ts      process lifecycle (listen, SIGTERM drain, crash = exit 1)│
+│ server/server.ts    routes only: request in → handler → response out         │
+│ server/handlers/    kiosk, admin-auth, content, access (codes, devices,      │
+│                     settings), results, media — orchestration, owns rules    │
+│ server/domain/      pure functions: Berlin day, code alphabet, answer        │
+│                     validation, statistics, secrets, rate limits             │
+│ server/adapters/    node:sqlite (DatabaseSync) + media files on /data        │
+│ shared/             Zod schemas + answer/code catalogue (server AND web)     │
+└──────────────────────────────── /data volume ───────────────────────────────┘
+                     wieisses.sqlite, media/, backups/
+```
+
+- **Runtime:** Node 24 runs the TypeScript directly (type stripping, like TopRun's ladder
+  service). Only runtime dependency: `zod`. Database: built-in `node:sqlite`.
+- **Frontend:** Vite multi-page build, Preact + TSX. Two entry points: the kiosk (`/`) and
+  the admin panel (`/admin/`). Charts with Chart.js. Font: Andika (SIL OFL, designed for
+  beginning readers), self-hosted. **No request ever leaves the site** (no CDN, no web
+  fonts, no analytics) — a school's data-protection requirement.
+- **Schemas:** one Zod schema per entity in `shared/schema.ts`; server validation, admin
+  forms and the TypeScript types all derive from it.
+- **Static files** (built SPA + `/media/*` uploads) are served by the same Node process.
+
+## Data Model
+
+SQLite, one file `/data/wieisses.sqlite`, schema created and migrated at startup
+(`PRAGMA user_version`), WAL mode, `foreign_keys = ON`.
+
+| Table | Columns | Notes |
+|---|---|---|
+| `topic` | id, name, color (`#rrggbb`), icon (emoji), image_url?, sort, active, created_at | one tab each |
+| `question` | id, topic_id → topic, kind (`scale5`\|`scale3`\|`yesno`\|`choice`), multi (bool, choice only), text, icon (emoji), image_url?, audio_url?, frequency (`core`\|`extended`), sort, active, created_at | |
+| `answer_option` | id, question_id → question, label, icon, image_url?, sort, active | only for `choice` |
+| `child_code` | id, animal, color, fruit, grade (int), device_id → device, active, created_at | UNIQUE(animal, color, fruit); chosen by the child |
+| `submission` | id, code_id → child_code, topic_id → topic, day (`YYYY-MM-DD`, Europe/Berlin), extended (bool), created_at | UNIQUE(code_id, topic_id, day) |
+| `answer` | id, submission_id → submission, question_id → question, value INTEGER?, option_id → answer_option? | one row per answered question; a multi-choice answer is one row per picked option |
+| `device` | id, label, token_hash (sha256), created_at, last_seen_at, revoked | registered tablets |
+| `admin_session` | token_hash (PK), created_at, expires_at | |
+| `setting` | key (PK), value (JSON) | see Settings |
+
+Indexes: `submission(day)`, `submission(topic_id, day)`, `answer(question_id)`,
+`answer(submission_id)`.
+
+Questions, options and topics are **never hard-deleted once answered** — `DELETE` is refused
+with 409 and the admin deactivates instead, so history keeps its meaning.
+
+### Answer catalogue (`shared/catalog.ts`)
+
+| kind | answers (value, face, spoken label) |
+|---|---|
+| `scale5` | 5 😄 Super · 4 🙂 Gut · 3 😐 Geht so · 2 🙁 Nicht so gut · 1 😢 Schlecht |
+| `scale3` | 3 😄 Gut · 2 😐 Geht so · 1 🙁 Nicht gut |
+| `yesno` | 1 👍 Ja · 0 👎 Nein |
+| `choice` | the question's own options (picture + label), single or multiple |
+
+### Picture code alphabet (`shared/catalog.ts`)
+
+12 animals × 8 colours × 8 fruits = **768 codes**.
+Animals 🦊 Fuchs 🐶 Hund 🐱 Katze 🐰 Hase 🐻 Bär 🐼 Panda 🐸 Frosch 🦁 Löwe 🐵 Affe 🐧 Pinguin
+🐢 Schildkröte 🦉 Eule · Colours Rot Blau Grün Gelb Lila Orange Rosa Braun · Fruits 🍎 Apfel
+🍌 Banane 🍓 Erdbeere 🍇 Trauben 🍐 Birne 🍒 Kirschen 🍋 Zitrone 🥕 Karotte.
+
+### Settings (`setting` table, defaults)
+
+| key | default | meaning |
+|---|---|---|
+| `title` | `"Wie isses?"` | start-screen title |
+| `extendedWeekdays` | `[5]` | ISO weekdays (1 = Mon … 7 = Sun) on which `extended` questions are added |
+| `autoRead` | `true` | read each question aloud when it appears |
+| `speechRate` | `0.9` | 0.6–1.3 |
+| `idleSeconds` | `90` | kiosk returns to the start screen after this much inactivity (20–600) |
+| `grades` | `[1, 2, 3, 4]` | grades a new child can pick (1–6; Berlin/Brandenburg primary schools run to 6) |
+
+### Starter content (seeded only into an empty database; afterwards it belongs to the admin)
+
+| Tab | Colour | Core questions | Extended questions |
+|---|---|---|---|
+| 🍽️ Essen | orange | Wie hat dir das Essen heute geschmeckt? (scale5) · Bist du satt geworden? (yesno) | Was isst du am liebsten? (choice, multi) · Hattest du genug Zeit zum Essen? (yesno) · Wie laut war es beim Essen? (choice: leise/mittel/laut) |
+| 📚 Hausaufgaben | blue | Wie gut konntest du heute deine Hausaufgaben machen? (scale5) · Hat dir jemand geholfen, wenn du Hilfe gebraucht hast? (choice: ja/nein/brauchte keine) | War es ruhig genug zum Arbeiten? (scale3) · Hattest du genug Zeit? (yesno) |
+| 🤝 Miteinander | green | Hast du dich heute wohlgefühlt? (scale5) · Haben dir die Erwachsenen heute zugehört? (scale5) | Kannst du zu einem Erwachsenen gehen, wenn du traurig bist? (yesno) · Werden Streits fair gelöst? (scale3) · Hat dich heute jemand gelobt? (yesno) |
+| 🎨 Spielen & Basteln | purple | Wie hat dir heute gefallen, was du gemacht hast? (scale5) · Was hast du heute gemacht? (choice, multi: draußen, basteln, malen, lesen, bauen, Brettspiele, Musik, ausruhen) | Was möchtest du öfter machen? (choice, multi) · Gibt es genug Spielsachen und Material? (scale3) |
+
+## API Endpoints
+
+All JSON. Errors: `{ "error": "<code>", "message": "<German, adult-facing>" }`.
+Mutating requests (`POST`/`PUT`/`PATCH`/`DELETE`) must carry the header `X-Wieisses: 1`
+(else 403 `csrf`) — a custom header cannot be sent cross-site without a CORS preflight,
+which the server never grants.
+
+### Health
+- `GET /healthz` → 200 `{ status: "ok", environment: "<APP_ENV>" }` (DB reachable), 503 otherwise.
+
+### Kiosk (tablet) — require a registered device (`wi_device` cookie)
+- `GET /api/v1/kiosk/config` → 200 `{ title, today, extendedToday, settings: {autoRead, speechRate, idleSeconds}, alphabet: {animals, colors, fruits}, topics: [{ id, name, color, icon, imageUrl, questions: [{ id, kind, multi, text, icon, imageUrl, audioUrl, options: [...] }] }] }` — only active topics/questions/options; `extended` questions only when `extendedToday`. 403 `device_not_registered`.
+- `POST /api/v1/kiosk/codes` `{ animal, color, fruit, grade }` (a new child picks a sign) → 201 `{ token, expiresInSeconds, doneTopicIds: [] }`. 409 `code_taken`, 429 `too_many_new_codes` (> 10 new codes per device in 10 min), 400 `validation` (incl. a grade not in `grades`), 403 `device_not_registered`.
+- `POST /api/v1/kiosk/session` `{ animal, color, fruit }` → 200 `{ token, expiresInSeconds, doneTopicIds }`. 404 `unknown_code` (also for an inactive code), 429 `too_many_attempts` (> 20 failed attempts per device in 10 min), 400 `validation`, 403 `device_not_registered`.
+- `POST /api/v1/kiosk/submissions` (`Authorization: Bearer <token>`) `{ topicId, answers: [{ questionId, value? , optionIds? }] }` → 201 `{ doneTopicIds }`. 409 `already_answered`, 401 `session_expired`, 400 `validation` (see Business Rules), 403 `device_not_registered`.
+
+### Admin — require the admin session cookie (`wi_admin`), except login
+- `POST /api/v1/admin/login` `{ password }` → 204 + cookie. 401 `wrong_password`, 429 `too_many_attempts` (10 failures / 15 min / client IP).
+- `POST /api/v1/admin/logout` → 204. `GET /api/v1/admin/me` → 200 `{ ok: true }` | 401 `not_logged_in`.
+- Topics: `GET /api/v1/admin/topics` → all topics (incl. inactive) with questions and options and per-item `answerCount`. `POST /api/v1/admin/topics` → 201 topic. `PATCH /api/v1/admin/topics/:id` (name, color, icon, imageUrl, sort, active) → 200. `DELETE` → 204 | 409 `in_use`.
+- Questions: `POST /api/v1/admin/topics/:id/questions` → 201. `PATCH /api/v1/admin/questions/:id` (text, icon, imageUrl, audioUrl, frequency, sort, active, multi) → 200; `kind` is immutable once answered (409 `in_use`). `DELETE` → 204 | 409 `in_use`.
+- Options: `POST /api/v1/admin/questions/:id/options` (choice questions only, else 400) → 201. `PATCH /api/v1/admin/options/:id` → 200. `DELETE` → 204 | 409 `in_use`.
+- `POST /api/v1/admin/media` raw body with `Content-Type: image/png|image/jpeg|image/webp|audio/mpeg|audio/mp4|audio/ogg|audio/wav` → 201 `{ url: "/media/<random>.<ext>" }`. 415 `unsupported_type` (content type AND magic bytes must match), 413 `too_large` (image 2 MB, audio 5 MB).
+- Codes: `GET /api/v1/admin/codes?grade=&active=` → list `{ id, animal, color, fruit, grade, deviceLabel, active, createdAt }` plus `newPerDay` for the last 14 days. `PATCH /api/v1/admin/codes/:id` `{ active?, grade? }` → 200.
+- Devices: `GET /api/v1/admin/devices` → list (no tokens). `POST /api/v1/admin/devices` `{ label }` → 201 and sets the `wi_device` cookie **on the calling browser** (the admin registers the tablet from the tablet itself). `PATCH /api/v1/admin/devices/:id` `{ revoked?, label? }` → 200.
+- Settings: `GET /api/v1/admin/settings` → 200 settings. `PUT /api/v1/admin/settings` (full object) → 200 | 400.
+- Results:
+  - `GET /api/v1/admin/results/summary?from&to&grade&bucket=day|week|month` → per topic: `submissions`, `children` (distinct codes), `index` (0–100, mean of normalised scale answers), `previous` (same metrics for the preceding range of equal length) and `series: [{ bucket, submissions, index }]`; plus totals.
+  - `GET /api/v1/admin/results/questions/:id?from&to&grade&bucket` → `{ question, n, distribution: [{ value|optionId, label, count }], mean?, series: [{ bucket, n, distribution }] }`.
+  - `GET /api/v1/admin/results/export.csv?from&to&grade` → `text/csv` (UTF-8 BOM, `;`-separated for German Excel): day, grade, topic, question, kind, answer value, answer label, extended. **No code id.**
+- `GET /media/:file` → the uploaded file (public — the kiosk shows it), `nosniff`, long cache.
+
+## Business Rules
+
+### The child's flow (kiosk)
+1. **Start screen** — title + one big "Los geht's" button (this tap also unlocks audio on iOS).
+2. **Picture code** — first *"Hast du schon ein Geheimzeichen?"*: **"Ja, ich habe eins 🔑"** /
+   **"Ich bin neu ✨"**. Then three steps, one per screen: *Welches Tier?* → *Welche Farbe?* →
+   *Welches Obst?* Each step is read aloud, each choice speaks its name when tapped, the
+   picks so far are shown at the top, a back arrow undoes the last pick.
+   - Returning: unknown code → *"Das Zeichen kenne ich nicht. Probier es nochmal!"* with
+     "Nochmal" and "Ich bin neu".
+   - New: a fourth step *"In welche Klasse gehst du?"* (big numbers from `grades`). A taken
+     combination → *"Dieses Zeichen hat schon jemand. Such dir ein anderes aus!"* and back to
+     the fruit step. Success → the sign shown big and read aloud: *"Das ist jetzt dein
+     Geheimzeichen: Fuchs, Blau, Apfel. Merk es dir gut!"* → "Verstanden".
+3. **Topic tabs** across the top, each in its colour with icon and name; tapping a tab reads its
+   name. A topic already answered today shows ✓ and *"Das hast du heute schon gemacht.
+   Morgen wieder!"* instead of questions. Before a tab is chosen, the same topics also appear
+   as big tiles in the content area.
+4. **Questions, one per screen**: progress dots, big picture (uploaded image or emoji), text in
+   Andika ≥ 28 px, 🔊 replay button. With `autoRead` the question is read when it appears;
+   an uploaded `audioUrl` replaces speech synthesis for that question. Answer buttons ≥ 96 px.
+   Single answers advance automatically after the spoken label; multi-choice has a "Fertig"
+   button; every question has a small "Überspringen".
+5. **Submit** after the topic's last question → *"Danke!"* animation → back to the tabs with ✓.
+   All topics done → *"Alles geschafft! Tschüss!"* → start screen after 5 s.
+6. A **"Tschüss 👋"** button is always visible; **idle for `idleSeconds`** → start screen. The
+   kiosk session token lives only in memory, so nothing of the previous child survives either.
+
+### Repeat protection (the user's question: *wie verhindern, dass ein Kind ganz oft hintereinander abstimmt?*)
+- **Picture code chosen by the child.** A new child picks a free combination of animal, colour
+  and fruit and keeps it in mind; a combination is unique, so the second child to pick it is
+  asked to choose another. The system stores **no names** — only the sign and the grade
+  (pseudonymous).
+- **One submission per code, topic and Berlin calendar day.** Enforced in a `BEGIN IMMEDIATE`
+  transaction plus the UNIQUE index as backstop → 409 `already_answered`. The first answer
+  counts; a later one is refused kindly, never overwrites.
+- **Guessing codes is throttled**: > 20 failed code attempts per device in 10 minutes → 429 with
+  *"Kurze Pause …"*. Limited per device, not per IP — all school tablets share one public IP.
+- **Making new signs to vote again is throttled**: > 10 new codes per device in 10 minutes →
+  429. The admin panel shows new signs per day and per tablet, so a spike is visible, and can
+  deactivate a code.
+- **Accepted weakness of self-chosen signs:** a child who forgets their sign can make a new one,
+  and a child can use another child's sign if they know it. This is soft protection for an
+  opinion survey, not authentication.
+- **Only registered tablets can vote.** The kiosk API refuses browsers without a valid device
+  cookie, so the public URL cannot be used from home or by strangers; a lost or replaced tablet
+  is revoked in the admin panel.
+
+### Extended questions
+`frequency = extended` questions are added to their topic on the weekdays in
+`extendedWeekdays` (Berlin time). On those days the topic is still answered once — core and
+extended together.
+
+### Submission validation (server, `server/domain/answers.ts`)
+- topic exists and is active; at least one answer; no question twice;
+- every question belongs to the topic, is active and is shown today (core, or extended on an
+  extended day);
+- `scale5` value ∈ 1..5, `scale3` ∈ 1..3, `yesno` ∈ {0,1}, no `optionIds`;
+- `choice`: `optionIds` non-empty, unique, all active options of that question; exactly one
+  unless `multi`; no `value`.
+- Unanswered (skipped) questions are simply absent.
+
+### Admin
+- Password from env `ADMIN_PASSWORD` (≥ 10 characters; the server refuses to start in
+  production without it). Compared via scrypt + `timingSafeEqual`. Session: random 32-byte
+  token, only its sha256 stored, 12 h lifetime.
+- The admin sees **aggregates only** — no view, filter or export per child code.
+- `kind` of an answered question cannot change; text/picture may (typo fixes). A changed
+  meaning should be a new question.
+- Codes: list with grade, tablet and date; new signs per day (last 14 days). A deactivated code
+  cannot log in, keeps its history, and its combination stays taken. Changing a code's grade
+  is allowed (a child who picked the wrong number).
+- Devices: register from the tablet itself while logged in as admin (label e.g. "Tablet 1");
+  list shows last seen; revoke at any time.
+
+### Statistics (`server/domain/stats.ts`, pure)
+- Normalised score of a scale answer: `(value − 1) / (max − 1) × 100`; topic **index** = mean
+  of normalised scale answers (`scale5`, `scale3`) in the bucket; `null` when there are none.
+- `yesno`: count and share of "Ja". `choice`: count per option and share of respondents.
+- Buckets in Berlin calendar: day, ISO week (Mon), month. `previous` = range of equal length
+  directly before `from`.
+- Default range: last 30 days, bucket week.
+
+### Dashboard (admin)
+- Totals (submissions, children, per-topic index with ▲/▼ vs. previous period).
+- One line chart: index per topic over time, in the topic colours.
+- Topic detail: per question a stacked bar chart of the answer distribution per bucket
+  (scale/yesno) or a bar chart of option shares (choice).
+- Filters: range (7 / 30 / 90 days / school year / custom), bucket, grade. CSV export.
+
+## Data Flow
+
+Greenfield — no existing code was analysed.
+
+## Dependencies
+
+None (first feature). Deployment follows the host conventions of TopRun and NinaNatur
+(GHCR image, root cron `deploy/roll-all.sh` → `deploy/auto-deploy.sh` with health-checked
+rollback, port published on `172.17.0.1` only).
+
+## Deployment
+
+| | |
+|---|---|
+| Repo | `github.com/JanderHungrige/wieisses` (to be created) |
+| Image | `ghcr.io/janderhungrige/wieisses:main` (+ `:<sha>`), built by `.github/workflows/deploy.yml` on push to `main`; the build runs typecheck + tests |
+| Host | clone at `/opt/wieisses`, `deploy/.env.prod` (gitignored): `COMPOSE_PROJECT_NAME=wieisses-prod`, `IMAGE_TAG=main`, `APP_PORT=8082`, `ADMIN_PASSWORD=…` |
+| Cron | root, offset **:23** (taken: :00 battlefuel, :08 toprun, :15 ninanatur, :30 funding-tender-tracker, :45 3dmap2) |
+| Proxy | NPM `wieisses.w3rth.de` → `http://172.17.0.1:8082` (already configured, answers 502 until the container runs) |
+| Data | named volume `wieisses-data` → `/data`; nightly `deploy/backup.sh` (SQLite online backup + `PRAGMA integrity_check`) |
+
+Container: non-root `node` user, read-only root FS, `/tmp` tmpfs, `cap_drop: ALL`,
+`no-new-privileges`, memory 192 MB, healthcheck `GET /healthz`, logs rotated (3 × 10 MB).
+
+## Security
+
+**Untrusted input:** every request body, query and path parameter; uploaded files; cookies;
+`X-Forwarded-*` headers from anything but the trusted proxy range (`127.0.0.1`,
+`172.16.0.0/12`).
+
+**What a malicious caller could try, and the answer:**
+- Vote from outside the school → device cookie required (random 32-byte token, only its hash
+  stored, `HttpOnly; SameSite=Strict; Secure` behind https).
+- Guess child codes or mass-create them → per-device throttles; codes are useless without a
+  registered device.
+- Flood answers → one per code/topic/day; body size capped (64 KB JSON).
+- Brute-force the admin password → 10 failures / 15 min / IP, scrypt.
+- CSRF on admin actions → `SameSite=Strict` + mandatory `X-Wieisses` header.
+- Upload HTML/SVG/script as "image" → allow-list of types, magic-byte check, random file name,
+  served with its fixed type and `X-Content-Type-Options: nosniff`; no SVG.
+- Path traversal on `/media/:file` and static files → names matched against
+  `^[a-f0-9]{32}\.(png|jpg|webp|mp3|m4a|ogg|wav)$`; static files resolved and confined to `dist/`.
+- XSS via question texts → rendered as text by Preact only (no `dangerouslySetInnerHTML`);
+  strict CSP `default-src 'self'`, `frame-ancestors 'none'`.
+- SQL injection → prepared statements only.
+
+**Never exposed:** the admin password or its hash, device/session tokens (only issued once, in a
+cookie), child codes in exports or results, client IPs in the database. Logs carry no codes and
+no tokens.
+
+## Known Issues
+
+- Speech synthesis depends on a German voice on the tablet. iPads ship one; some Android
+  tablets need the Google TTS German voice installed. Per-question audio uploads are the
+  fallback.
+- A child's grade is fixed at sign-up; there is no school-year rollover (all grades +1) yet —
+  the admin can only change grades one code at a time.
+- A tablet whose browser data is cleared loses its device cookie and must be registered again
+  (Tablets → Dieses Gerät freischalten); the old entry can be revoked.
+- Kiosk sessions live in server memory: a deploy or restart sends a child mid-topic back to the
+  sign screen (their answers to that topic were not handed in yet).
+
+## Out of scope (MVP)
+
+Free-text answers (moderation and privacy burden with children's writing), per-child views,
+multiple admin accounts, a dev/preview stack, server-side TTS, burst detection.
+
+## Bugs
+
+(none yet — populated by /mdd bug when issues are reported)
