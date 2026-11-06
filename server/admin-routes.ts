@@ -14,6 +14,8 @@ import {
   SettingsSchema,
   TopicCreate,
   TopicPatch,
+  VoiceClipSchema,
+  VoiceGenerateSchema,
 } from '../shared/schema.ts';
 import type { App } from './context.ts';
 import { changeCode, changeDevice, codesOverview, devices, registerThisDevice, replaceSettings, settings } from './handlers/access.ts';
@@ -21,6 +23,7 @@ import { loginAdmin, logoutAdmin, requireAdmin } from './handlers/admin-auth.ts'
 import * as content from './handlers/content.ts';
 import { uploadMedia } from './handlers/media.ts';
 import { exportCsv, questionResults, summary } from './handlers/results.ts';
+import { generateVoice, revoiceText, voiceStatus } from './handlers/voice.ts';
 import { MAX_UPLOAD } from './domain/media-type.ts';
 import { ok } from './http/reply.ts';
 import { ADMIN_COOKIE, DEVICE_COOKIE, clientIp, cookieHeader, cookies, parseWith, readBody, readJson } from './http/request.ts';
@@ -73,4 +76,9 @@ export function adminRoutes(router: Router, app: App): void {
     .on('GET', '/api/v1/admin/results/summary', (c) => (admin(c), summary(app, parseWith(ResultsQuerySchema, query(c)))))
     .on('GET', '/api/v1/admin/results/questions/:id', (c) => (admin(c), questionResults(app, id(c), parseWith(ResultsQuerySchema, query(c)))))
     .on('GET', '/api/v1/admin/results/export.csv', (c) => (admin(c), exportCsv(app, parseWith(ResultsQuerySchema, query(c)))));
+
+  router
+    .on('GET', '/api/v1/admin/voice', (c) => (admin(c), voiceStatus(app)))
+    .on('POST', '/api/v1/admin/voice/generate', async (c) => (admin(c), generateVoice(app, (await readJson(c.req, VoiceGenerateSchema)).mode)))
+    .on('POST', '/api/v1/admin/voice/clip', async (c) => (admin(c), revoiceText(app, (await readJson(c.req, VoiceClipSchema)).text)));
 }

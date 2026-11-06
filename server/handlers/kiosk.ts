@@ -1,7 +1,8 @@
 // The child's side: what a tablet shows today, picking or entering a sign, and handing in the
 // answers to one topic (doc 01, "The child's flow" and "Repeat protection").
 import type { CodePicks } from '../../shared/catalog.ts';
-import type { Device, KioskConfig, KioskSession, SubmissionInput } from '../../shared/schema.ts';
+import { PHRASE, fixedPhrases } from '../../shared/phrases.ts';
+import type { Device, KioskConfig, KioskSession, KioskTopic, SubmissionInput } from '../../shared/schema.ts';
 import { codeIsActive, createCode, deviceByToken, findCode } from '../adapters/access-store.ts';
 import { getTopic, kioskTopics, questionsForCheck } from '../adapters/content-store.ts';
 import { getSettings } from '../adapters/settings-store.ts';
@@ -33,9 +34,17 @@ function today(app: App): { day: string; extended: boolean } {
   return { day, extended: isExtendedDay(day, getSettings(app.db).extendedWeekdays) };
 }
 
+function spokenTexts(topics: KioskTopic[]): string[] {
+  return [
+    ...fixedPhrases(),
+    ...topics.flatMap((t) => [t.name, ...t.questions.flatMap((q) => [q.text, ...q.options.map((o) => o.label)])]),
+  ];
+}
+
 export function kioskConfig(app: App): Reply {
   const settings = getSettings(app.db);
   const { day, extended } = today(app);
+  const topics = kioskTopics(app.db, extended);
   const config: KioskConfig = {
     title: settings.title,
     today: day,
@@ -46,7 +55,8 @@ export function kioskConfig(app: App): Reply {
       idleSeconds: settings.idleSeconds,
       grades: settings.grades,
     },
-    topics: kioskTopics(app.db, extended),
+    topics,
+    voice: app.voice.urls(spokenTexts(topics)),
   };
   return ok(config);
 }
@@ -59,7 +69,7 @@ function startSession(app: App, codeId: number, deviceId: number): KioskSession 
 function guard(app: App, device: Device): string {
   const key = `device:${device.id}`;
   if (!app.limits.codeGuess.allowed(key)) {
-    throw new HttpError(429, 'too_many_attempts', 'Kurze Pause! Gleich kannst du es nochmal probieren.');
+    throw new HttpError(429, 'too_many_attempts', PHRASE.pauseGuess);
   }
   return key;
 }
@@ -70,12 +80,12 @@ export function newCode(app: App, device: Device, input: CodePicks & { grade: nu
   }
   const key = guard(app, device);
   if (!app.limits.newCode.allowed(key)) {
-    throw new HttpError(429, 'too_many_new_codes', 'Kurze Pause! Gleich kannst du ein Zeichen aussuchen.');
+    throw new HttpError(429, 'too_many_new_codes', PHRASE.pauseNew);
   }
   const id = createCode(app.db, { ...input, deviceId: device.id, createdAt: app.now().toISOString() });
   if (id === 'taken') {
     app.limits.codeGuess.hit(key); // a "taken" tells which signs exist: count it like a guess
-    throw new HttpError(409, 'code_taken', 'Dieses Zeichen hat schon jemand. Such dir ein anderes aus!');
+    throw new HttpError(409, 'code_taken', PHRASE.signTaken);
   }
   app.limits.newCode.hit(key);
   app.log.info('code created', { deviceId: device.id, grade: input.grade });
@@ -87,7 +97,7 @@ export function login(app: App, device: Device, picks: CodePicks): Reply {
   const code = findCode(app.db, picks);
   if (!code || !code.active) {
     app.limits.codeGuess.hit(key);
-    throw new HttpError(404, 'unknown_code', 'Das Zeichen kenne ich nicht. Probier es nochmal!');
+    throw new HttpError(404, 'unknown_code', PHRASE.unknownSign);
   }
   return ok(startSession(app, code.id, device.id));
 }
@@ -111,7 +121,7 @@ export function submit(app: App, session: KioskSessionData, input: SubmissionInp
     rows: check.rows,
   });
   if (result === 'already_answered') {
-    throw new HttpError(409, 'already_answered', 'Das hast du heute schon gemacht. Morgen wieder!');
+    throw new HttpError(409, 'already_answered', PHRASE.alreadyDone);
   }
   return created({ doneTopicIds: doneTopicIds(app.db, session.codeId, day) });
 }

@@ -15,3 +15,4 @@ deploy
 .DS_Store
 Dockerfile
 docker-compose.yml
+voice

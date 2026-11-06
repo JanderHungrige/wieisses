@@ -30,10 +30,15 @@ const app = createAppContext({
   mediaDir: config.mediaDir,
   staticDir: config.staticDir,
   adminPassword: config.adminPassword,
+  voiceUrl: config.voiceUrl,
   log,
 });
 const server = createServer(app);
-server.listen(config.port, () => log.info('listening', { port: config.port, env: config.env }));
+server.listen(config.port, () => {
+  log.info('listening', { port: config.port, env: config.env, voice: app.voice.configured });
+  // Fixed phrases on a fresh install, and whatever an earlier run left missing.
+  if (app.voice.configured) setTimeout(() => app.voice.generate('missing'), 5_000).unref();
+});
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {

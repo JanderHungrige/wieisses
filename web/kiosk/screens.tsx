@@ -1,8 +1,9 @@
 // The kiosk's simple screens: start, "new or not", the new sign, messages, thanks.
 import { useEffect } from 'preact/hooks';
-import { animal, colour, fruit, spokenCode, type CodePicks } from '../../shared/catalog.ts';
+import { animal, colour, fruit, type CodePicks } from '../../shared/catalog.ts';
+import { PHRASE } from '../../shared/phrases.ts';
 import type { KioskTopic } from '../../shared/schema.ts';
-import { say } from '../lib/speech.ts';
+import { say, sayParts } from '../lib/speech.ts';
 import { Prompt } from './Prompt.tsx';
 import { Picture } from './QuestionFlow.tsx';
 
@@ -22,7 +23,7 @@ export function StartScreen({ title, onStart }: { title: string; onStart: () => 
 }
 
 export function AskScreen({ onChoose }: { onChoose: (mode: 'new' | 'returning') => void }) {
-  const text = 'Hast du schon ein Geheimzeichen?';
+  const text = PHRASE.askSign;
   useSay(text);
   return (
     <section class="center" aria-labelledby="ask-title">
@@ -42,8 +43,12 @@ export function AskScreen({ onChoose }: { onChoose: (mode: 'new' | 'returning') 
 }
 
 export function WelcomeScreen({ picks, onOk }: { picks: CodePicks; onOk: () => void }) {
-  useSay(`Das ist jetzt dein Geheimzeichen: ${spokenCode(picks)}. Merk es dir gut!`);
   const c = colour(picks.color);
+  // Spoken in fixed parts, so every part has a Thorsten clip (doc 01, "Fixed kiosk phrases").
+  useEffect(() => {
+    const parts = [animal(picks.animal)?.name, colour(picks.color)?.name, fruit(picks.fruit)?.name];
+    sayParts([PHRASE.newSign, ...parts.filter((p): p is string => p !== undefined), PHRASE.remember]);
+  }, [picks]);
   return (
     <section class="center" aria-labelledby="welcome-title">
       <h1 id="welcome-title" class="prompt">Das ist jetzt dein Geheimzeichen!</h1>
@@ -59,7 +64,7 @@ export function WelcomeScreen({ picks, onOk }: { picks: CodePicks; onOk: () => v
 }
 
 export function UnknownCodeScreen({ onRetry, onNew }: { onRetry: () => void; onNew: () => void }) {
-  const text = 'Das Zeichen kenne ich nicht. Probier es nochmal!';
+  const text = PHRASE.unknownSign;
   useSay(text);
   return (
     <section class="center" aria-labelledby="unknown-title">
@@ -80,7 +85,7 @@ export function UnknownCodeScreen({ onRetry, onNew }: { onRetry: () => void; onN
 }
 
 export function TopicHome({ topics, done, onPick }: { topics: KioskTopic[]; done: number[]; onPick: (t: KioskTopic) => void }) {
-  const text = 'Worüber möchtest du erzählen?';
+  const text = PHRASE.chooseTopic;
   useSay(text);
   return (
     <section class="topic-home" aria-labelledby="home-title">
@@ -99,7 +104,7 @@ export function TopicHome({ topics, done, onPick }: { topics: KioskTopic[]; done
 }
 
 export function AlreadyDone({ topic }: { topic: KioskTopic }) {
-  useSay('Das hast du heute schon gemacht. Morgen wieder!');
+  useSay(PHRASE.alreadyDone);
   return (
     <section class="center" aria-labelledby="done-title">
       <p class="hello" aria-hidden="true">✅</p>
@@ -110,7 +115,7 @@ export function AlreadyDone({ topic }: { topic: KioskTopic }) {
 }
 
 export function ThanksScreen({ all }: { all: boolean }) {
-  useSay(all ? 'Alles geschafft! Danke und tschüss!' : 'Danke!');
+  useSay(all ? PHRASE.allDone : PHRASE.thanks);
   return (
     <section class="center thanks" aria-labelledby="thanks-title">
       <div class="confetti" aria-hidden="true">

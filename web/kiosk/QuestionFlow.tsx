@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { FACES } from '../../shared/catalog.ts';
 import type { AnswerInput, KioskQuestion, KioskTopic } from '../../shared/schema.ts';
+import { PHRASE } from '../../shared/phrases.ts';
 import { say, sayQuestion } from '../lib/speech.ts';
 import { Prompt } from './Prompt.tsx';
 
@@ -58,12 +59,12 @@ export function QuestionFlow({ topic, autoRead, onFinish }: Props) {
             type="button"
             class="done-button"
             disabled={locked || picked.length === 0}
-            onClick={() => answer({ questionId: question.id, optionIds: picked }, 'Fertig')}
+            onClick={() => answer({ questionId: question.id, optionIds: picked }, PHRASE.done)}
           >
             Fertig ✓
           </button>
         )}
-        <button type="button" class="skip" disabled={locked} onClick={() => (say('Überspringen', true), advance(answers))}>
+        <button type="button" class="skip" disabled={locked} onClick={() => (say(PHRASE.skip, true), advance(answers))}>
           Überspringen ⏭
         </button>
       </div>

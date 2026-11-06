@@ -1,7 +1,7 @@
 // Reads of topics, questions and options — for the kiosk, for answer validation and for the
 // admin editor. Writes live in content-write.ts.
 import type { QuestionKind } from '../../shared/catalog.ts';
-import type { AdminTopic, AnswerOption, KioskTopic, Question, Topic } from '../../shared/schema.ts';
+import type { AnswerOption, CountedTopic, KioskTopic, Question, Topic } from '../../shared/schema.ts';
 import type { QuestionForCheck } from '../domain/answers.ts';
 import { bool, type Db } from './db.ts';
 
@@ -137,7 +137,7 @@ function counts(db: Db, sql: string): Map<number, number> {
 }
 
 /** Everything for the editor, inactive included, with how often each item was answered. */
-export function adminTopics(db: Db): AdminTopic[] {
+export function adminTopics(db: Db): CountedTopic[] {
   const topicCounts = counts(db, 'SELECT topic_id AS id, COUNT(*) AS n FROM submission GROUP BY topic_id');
   const questionCounts = counts(db, 'SELECT question_id AS id, COUNT(DISTINCT submission_id) AS n FROM answer GROUP BY question_id');
   const optionCounts = counts(db, 'SELECT option_id AS id, COUNT(*) AS n FROM answer WHERE option_id IS NOT NULL GROUP BY option_id');

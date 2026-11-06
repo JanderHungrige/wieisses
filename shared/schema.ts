@@ -132,6 +132,8 @@ export type KioskConfig = {
   extendedToday: boolean;
   settings: Pick<Settings, 'autoRead' | 'speechRate' | 'idleSeconds' | 'grades'>;
   topics: KioskTopic[];
+  /** Normalised text → Thorsten clip URL, for every spoken text that has been voiced. */
+  voice: Record<string, string>;
 };
 export type KioskSession = { token: string; expiresInSeconds: number; doneTopicIds: number[] };
 
@@ -165,8 +167,31 @@ export type ChildCode = CodePicksSchemaType & {
 };
 type CodePicksSchemaType = z.infer<typeof CodePicksSchema>;
 
-export type AdminQuestion = Question & { answerCount: number; options: (AnswerOption & { answerCount: number })[] };
-export type AdminTopic = Topic & { answerCount: number; questions: AdminQuestion[] };
+type Counted = { answerCount: number };
+export type CountedOption = AnswerOption & Counted;
+export type CountedQuestion = Question & Counted & { options: CountedOption[] };
+export type CountedTopic = Topic & Counted & { questions: CountedQuestion[] };
+
+type Voiced = { voiceUrl: string | null };
+export type AdminOption = CountedOption & Voiced;
+export type AdminQuestion = Omit<CountedQuestion, 'options'> & Voiced & { options: AdminOption[] };
+export type AdminTopic = Omit<CountedTopic, 'questions'> & Voiced & { questions: AdminQuestion[] };
+
+// ── Voice ──────────────────────────────────────────────────────────────────
+
+export const VoiceGenerateSchema = z.object({ mode: z.enum(['missing', 'all']) });
+export const VoiceClipSchema = z.object({ text: z.string().min(1).max(400) });
+export type VoiceStatus = {
+  configured: boolean;
+  reachable: boolean | null;
+  voice: string;
+  lengthScale: number;
+  total: number;
+  ready: number;
+  queued: number;
+  working: string | null;
+  failed: { text: string; message: string }[];
+};
 
 export type ApiError = { error: string; message: string };
 

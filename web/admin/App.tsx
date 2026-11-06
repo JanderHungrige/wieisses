@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { ApiError } from '../lib/api.ts';
 import { LOGGED_OUT, adminApi, useRoute } from './adminApi.ts';
+import { drafts, useDrafts } from './drafts.ts';
 import { defaultFilters, type Filters } from './pages/Filters.tsx';
 import { Codes } from './pages/Codes.tsx';
 import { Content } from './pages/Content.tsx';
@@ -22,12 +23,21 @@ export function App() {
   const [auth, setAuth] = useState<'checking' | 'out' | 'in'>('checking');
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const route = useRoute();
+  const pending = useDrafts();
 
   useEffect(() => {
     adminApi('/api/v1/admin/me').then(() => setAuth('in'), () => setAuth('out'));
     const out = () => setAuth('out');
+    // Unsaved editor drafts: the browser asks before the page is left or reloaded.
+    const leave = (e: BeforeUnloadEvent) => {
+      if (drafts.count() > 0) e.preventDefault();
+    };
     window.addEventListener(LOGGED_OUT, out);
-    return () => window.removeEventListener(LOGGED_OUT, out);
+    window.addEventListener('beforeunload', leave);
+    return () => {
+      window.removeEventListener(LOGGED_OUT, out);
+      window.removeEventListener('beforeunload', leave);
+    };
   }, []);
 
   if (auth === 'checking') return <p class="page">Einen Moment …</p>;
@@ -38,6 +48,9 @@ export function App() {
   const current = section === 'thema' ? '' : section;
 
   async function logout(): Promise<void> {
+    const pending = drafts.count();
+    if (pending > 0 && !window.confirm(`${pending} ungespeicherte Änderung(en) im Fragen-Editor gehen verloren. Trotzdem abmelden?`)) return;
+    drafts.clear();
     await adminApi('/api/v1/admin/logout', { method: 'POST' }).catch(() => undefined);
     setAuth('out');
   }
@@ -48,7 +61,10 @@ export function App() {
         <a class="brand" href="#/">Wie isses? <span>Admin</span></a>
         <nav aria-label="Bereiche">
           {NAV.map(([path, label]) => (
-            <a href={`#/${path}`} aria-current={current === path ? 'page' : undefined}>{label}</a>
+            <a href={`#/${path}`} aria-current={current === path ? 'page' : undefined}>
+              {label}
+              {path === 'fragen' && pending > 0 && <span class="badge changed"> {pending}</span>}
+            </a>
           ))}
         </nav>
         <button type="button" class="ghost" onClick={() => void logout()}>Abmelden</button>

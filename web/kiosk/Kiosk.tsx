@@ -1,6 +1,7 @@
 // The kiosk page: header with the coloured topic tabs and "Tschüss", and the current screen.
 import type { KioskTopic } from '../../shared/schema.ts';
-import { say } from '../lib/speech.ts';
+import { PHRASE } from '../../shared/phrases.ts';
+import { say, unlockAudio } from '../lib/speech.ts';
 import { CodePicker } from './CodePicker.tsx';
 import { QuestionFlow } from './QuestionFlow.tsx';
 import * as S from './screens.tsx';
@@ -24,7 +25,7 @@ export function Kiosk() {
           <span class="bar-title">{phase.name === 'start' ? '' : (config?.title ?? 'Wie isses?')}</span>
         )}
         {!RESTING.has(phase.name) && (
-          <button type="button" class="bye" onClick={() => (say('Tschüss!', true), k.reset())}>Tschüss 👋</button>
+          <button type="button" class="bye" onClick={() => (say(PHRASE.bye, true), k.reset())}>Tschüss 👋</button>
         )}
       </header>
       <main class="stage">
@@ -41,7 +42,7 @@ function Screen({ k, active }: { k: K; active: KioskTopic | undefined }) {
   if (!config || phase.name === 'loading') return <p class="loading">Einen Moment …</p>;
   switch (phase.name) {
     case 'start':
-      return <S.StartScreen title={config.title} onStart={() => k.setPhase({ name: 'ask' })} />;
+      return <S.StartScreen title={config.title} onStart={() => (unlockAudio(), k.setPhase({ name: 'ask' }))} />;
     case 'ask':
       return <S.AskScreen onChoose={(mode) => k.setPhase({ name: 'pick', mode })} />;
     case 'pick':

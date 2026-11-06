@@ -6,7 +6,21 @@ depends_on: []
 relates: []
 source_files:
   - shared/catalog.ts
+  - shared/phrases.ts
   - shared/schema.ts
+  - server/domain/voice-texts.ts
+  - server/adapters/voice-store.ts
+  - server/adapters/voice-client.ts
+  - server/handlers/voice-queue.ts
+  - server/handlers/voice.ts
+  - web/admin/drafts.ts
+  - web/admin/pages/TopicEditor.tsx
+  - web/admin/pages/VoicePanel.tsx
+  - voice/server.py
+  - voice/Dockerfile
+  - voice/requirements.txt
+  - voice/THIRD_PARTY.md
+  - .github/workflows/voice.yml
   - server/main.ts
   - server/config.ts
   - server/context.ts
@@ -107,7 +121,11 @@ routes:
   - GET /api/v1/admin/results/summary
   - GET /api/v1/admin/results/questions/:id
   - GET /api/v1/admin/results/export.csv
+  - GET /api/v1/admin/voice
+  - POST /api/v1/admin/voice/generate
+  - POST /api/v1/admin/voice/clip
   - GET /media/:file
+  - "voice service (internal): GET /healthz, POST /synthesize"
 models:
   - topic
   - question
@@ -118,6 +136,7 @@ models:
   - device
   - admin_session
   - setting
+  - voice_clip
 test_files:
   - tests/unit/day.test.ts
   - tests/unit/codes.test.ts
@@ -127,12 +146,15 @@ test_files:
   - tests/api/admin.test.ts
   - tests/api/results.test.ts
   - tests/api/harness.ts
+  - tests/unit/voice-texts.test.ts
+  - tests/api/voice.test.ts
+  - tests/api/fake-voice.ts
 data_flow: greenfield
 last_synced: 2026-11-06
-status: complete
-phase: all
+status: in_progress
+phase: integration-pending
 mdd_version: 11
-tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, admin-panel, sqlite]
+tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, piper, admin-panel, sqlite]
 path: Umfrage
 integration_contracts: []
 satisfies_contracts: []
@@ -150,7 +172,8 @@ topics — lunch, homework supervision, the carers, the activities on offer — 
 tablets, daily or whenever they like. Every question is shown as a **picture, as text and
 read aloud**, so a child who cannot read yet can answer alone. Staff see the results over
 time, as charts, in a password-protected admin panel, and maintain the topics and questions
-there.
+there. Everything the kiosk says is spoken in one voice — **Thorsten-Voice** (Piper, high),
+generated on the server when the admin saves their changes.
 
 Live at `https://wieisses.w3rth.de` (Nginx Proxy Manager → `172.17.0.1:8082`).
 
@@ -168,9 +191,14 @@ tablet (kiosk SPA, /)          admin browser (admin SPA, /admin/)
 │ server/domain/      pure functions: Berlin day, code alphabet, answer        │
 │                     validation, statistics, secrets, rate limits             │
 │ server/adapters/    node:sqlite (DatabaseSync) + media files on /data        │
-│ shared/             Zod schemas + answer/code catalogue (server AND web)     │
+│ shared/             Zod schemas + answer/code catalogue + fixed kiosk phrases│
 └──────────────────────────────── /data volume ───────────────────────────────┘
-                     wieisses.sqlite, media/, backups/
+        │ http://voice:5000 (compose network only)   wieisses.sqlite, media/, backups/
+        ▼
+┌──────── voice container (Python 3.12 + piper-tts 1.8.0 + Thorsten high) ────────┐
+│ voice/server.py   POST /synthesize {text, lengthScale} → audio/mpeg (via lame)   │
+│                   one at a time, ≤ 1 CPU, model released after 120 s idle        │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - **Runtime:** Node 24 runs the TypeScript directly (type stripping, like TopRun's ladder
@@ -181,7 +209,12 @@ tablet (kiosk SPA, /)          admin browser (admin SPA, /admin/)
   fonts, no analytics) — a school's data-protection requirement.
 - **Schemas:** one Zod schema per entity in `shared/schema.ts`; server validation, admin
   forms and the TypeScript types all derive from it.
-- **Static files** (built SPA + `/media/*` uploads) are served by the same Node process.
+- **Static files** (built SPA + `/media/*` uploads and voice clips) are served by the same
+  Node process.
+- **Voice:** a second container turns text into Thorsten speech. The app keeps a queue, asks
+  the voice service one text at a time, and stores the MP3 as a clip; the kiosk only ever
+  downloads finished clips from `/media`. Without `VOICE_URL` (tests, plain dev) the voice
+  feature is off and the kiosk falls back to the tablet's own voice.
 
 ## Data Model
 
@@ -199,6 +232,7 @@ SQLite, one file `/data/wieisses.sqlite`, schema created and migrated at startup
 | `device` | id, label, token_hash (sha256), created_at, last_seen_at, revoked | registered tablets |
 | `admin_session` | token_hash (PK), created_at, expires_at | |
 | `setting` | key (PK), value (JSON) | see Settings |
+| `voice_clip` | key (PK, sha256 hex of `thorsten-high|<lengthScale>|<text>`), text, url, created_at | one MP3 per distinct spoken text; file `/data/media/<key[0..32]>.mp3` |
 
 Indexes: `submission(day)`, `submission(topic_id, day)`, `answer(question_id)`,
 `answer(submission_id)`.
@@ -220,7 +254,18 @@ with 409 and the admin deactivates instead, so history keeps its meaning.
 12 animals × 8 colours × 8 fruits = **768 codes**.
 Animals 🦊 Fuchs 🐶 Hund 🐱 Katze 🐰 Hase 🐻 Bär 🐼 Panda 🐸 Frosch 🦁 Löwe 🐵 Affe 🐧 Pinguin
 🐢 Schildkröte 🦉 Eule · Colours Rot Blau Grün Gelb Lila Orange Rosa Braun · Fruits 🍎 Apfel
-🍌 Banane 🍓 Erdbeere 🍇 Trauben 🍐 Birne 🍒 Kirschen 🍋 Zitrone 🥕 Karotte.
+🍌 Banane 🍓 Erdbeere 🍇 Trauben 🍐 Birne 🍒 Kirschen 🍋 Zitrone 🍉 Melone.
+
+### Fixed kiosk phrases (`shared/phrases.ts`)
+
+Every sentence the kiosk speaks that is not admin content: prompts of each screen, the names of
+all animals, colours and fruits, the face labels, "Klasse 1" … "Klasse 6", "Überspringen",
+"Fertig", "Danke!", "Tschüss!", the kind refusals ("Das hast du heute schon gemacht. Morgen
+wieder!", "Dieses Zeichen hat schon jemand …", "Kurze Pause! …"). The kiosk screens and the
+server's child-facing messages use these constants, so the spoken text and its clip always
+match character for character. Sentences with a variable part are spoken as a sequence of
+fixed parts — e.g. *"Das ist jetzt dein Geheimzeichen:"* · *Fuchs* · *Blau* · *Apfel* ·
+*"Merk es dir gut!"* — so no clip is ever needed for one of the 768 combinations.
 
 ### Settings (`setting` table, defaults)
 
@@ -229,7 +274,7 @@ Animals 🦊 Fuchs 🐶 Hund 🐱 Katze 🐰 Hase 🐻 Bär 🐼 Panda 🐸 Fros
 | `title` | `"Wie isses?"` | start-screen title |
 | `extendedWeekdays` | `[5]` | ISO weekdays (1 = Mon … 7 = Sun) on which `extended` questions are added |
 | `autoRead` | `true` | read each question aloud when it appears |
-| `speechRate` | `0.9` | 0.6–1.3 |
+| `speechRate` | `0.9` | 0.6–1.3; tablet voice rate, and Thorsten's `lengthScale = round(1 / speechRate, 2)` — changing it re-voices everything |
 | `idleSeconds` | `90` | kiosk returns to the start screen after this much inactivity (20–600) |
 | `grades` | `[1, 2, 3, 4]` | grades a new child can pick (1–6; Berlin/Brandenburg primary schools run to 6) |
 
@@ -253,7 +298,7 @@ which the server never grants.
 - `GET /healthz` → 200 `{ status: "ok", environment: "<APP_ENV>" }` (DB reachable), 503 otherwise.
 
 ### Kiosk (tablet) — require a registered device (`wi_device` cookie)
-- `GET /api/v1/kiosk/config` → 200 `{ title, today, extendedToday, settings: {autoRead, speechRate, idleSeconds}, alphabet: {animals, colors, fruits}, topics: [{ id, name, color, icon, imageUrl, questions: [{ id, kind, multi, text, icon, imageUrl, audioUrl, options: [...] }] }] }` — only active topics/questions/options; `extended` questions only when `extendedToday`. 403 `device_not_registered`.
+- `GET /api/v1/kiosk/config` → 200 `{ title, today, extendedToday, settings: {autoRead, speechRate, idleSeconds, grades}, topics: [{ id, name, color, icon, imageUrl, questions: [{ id, kind, multi, text, icon, imageUrl, audioUrl, options: [...] }] }], voice: { "<text>": "/media/<key>.mp3", … } }` — only active topics/questions/options; `extended` questions only when `extendedToday`; `voice` holds a clip for every fixed phrase and every topic name, question text and option label of this config that has been voiced (missing ones are simply absent). 403 `device_not_registered`.
 - `POST /api/v1/kiosk/codes` `{ animal, color, fruit, grade }` (a new child picks a sign) → 201 `{ token, expiresInSeconds, doneTopicIds: [] }`. 409 `code_taken`, 429 `too_many_new_codes` (> 10 new codes per device in 10 min), 400 `validation` (incl. a grade not in `grades`), 403 `device_not_registered`.
 - `POST /api/v1/kiosk/session` `{ animal, color, fruit }` → 200 `{ token, expiresInSeconds, doneTopicIds }`. 404 `unknown_code` (also for an inactive code), 429 `too_many_attempts` (> 20 failed attempts per device in 10 min), 400 `validation`, 403 `device_not_registered`.
 - `POST /api/v1/kiosk/submissions` (`Authorization: Bearer <token>`) `{ topicId, answers: [{ questionId, value? , optionIds? }] }` → 201 `{ doneTopicIds }`. 409 `already_answered`, 401 `session_expired`, 400 `validation` (see Business Rules), 403 `device_not_registered`.
@@ -261,13 +306,20 @@ which the server never grants.
 ### Admin — require the admin session cookie (`wi_admin`), except login
 - `POST /api/v1/admin/login` `{ password }` → 204 + cookie. 401 `wrong_password`, 429 `too_many_attempts` (10 failures / 15 min / client IP).
 - `POST /api/v1/admin/logout` → 204. `GET /api/v1/admin/me` → 200 `{ ok: true }` | 401 `not_logged_in`.
-- Topics: `GET /api/v1/admin/topics` → all topics (incl. inactive) with questions and options and per-item `answerCount`. `POST /api/v1/admin/topics` → 201 topic. `PATCH /api/v1/admin/topics/:id` (name, color, icon, imageUrl, sort, active) → 200. `DELETE` → 204 | 409 `in_use`.
+- Topics: `GET /api/v1/admin/topics` → all topics (incl. inactive) with questions and options and per-item `answerCount` and `voiceUrl` (the current Thorsten clip of the name/text/label, or `null`). `POST /api/v1/admin/topics` → 201 topic. `PATCH /api/v1/admin/topics/:id` (name, color, icon, imageUrl, sort, active) → 200. `DELETE` → 204 | 409 `in_use`.
 - Questions: `POST /api/v1/admin/topics/:id/questions` → 201. `PATCH /api/v1/admin/questions/:id` (text, icon, imageUrl, audioUrl, frequency, sort, active, multi) → 200; `kind` is immutable once answered (409 `in_use`). `DELETE` → 204 | 409 `in_use`.
 - Options: `POST /api/v1/admin/questions/:id/options` (choice questions only, else 400) → 201. `PATCH /api/v1/admin/options/:id` → 200. `DELETE` → 204 | 409 `in_use`.
 - `POST /api/v1/admin/media` raw body with `Content-Type: image/png|image/jpeg|image/webp|audio/mpeg|audio/mp4|audio/ogg|audio/wav` → 201 `{ url: "/media/<random>.<ext>" }`. 415 `unsupported_type` (content type AND magic bytes must match), 413 `too_large` (image 2 MB, audio 5 MB).
 - Codes: `GET /api/v1/admin/codes?grade=&active=` → list `{ id, animal, color, fruit, grade, deviceLabel, active, createdAt }` plus `newPerDay` for the last 14 days. `PATCH /api/v1/admin/codes/:id` `{ active?, grade? }` → 200.
 - Devices: `GET /api/v1/admin/devices` → list (no tokens). `POST /api/v1/admin/devices` `{ label }` → 201 and sets the `wi_device` cookie **on the calling browser** (the admin registers the tablet from the tablet itself). `PATCH /api/v1/admin/devices/:id` `{ revoked?, label? }` → 200.
-- Settings: `GET /api/v1/admin/settings` → 200 settings. `PUT /api/v1/admin/settings` (full object) → 200 | 400.
+- Settings: `GET /api/v1/admin/settings` → 200 settings. `PUT /api/v1/admin/settings` (full object) → 200 | 400. A changed `speechRate` starts re-voicing everything.
+- Voice:
+  - `GET /api/v1/admin/voice` → `{ configured, reachable, voice: "Thorsten (high)", lengthScale, total, ready, queued, working: text|null, failed: [{ text, message }] }` — `total` = distinct texts that should have a clip.
+  - `POST /api/v1/admin/voice/generate` `{ mode: "missing" | "all" }` → 202 status. `missing` voices every wanted text without a clip (what "Speichern & vertonen" calls); `all` re-voices everything. 503 `voice_unavailable` when `VOICE_URL` is not configured.
+  - `POST /api/v1/admin/voice/clip` `{ text }` → 202 status; re-voices one text ("Neu vertonen"). 400 `validation` when the text is not one the kiosk speaks.
+- Voice service (internal, compose network only, never published):
+  - `GET /healthz` → `{ status: "ok", voice: "de_DE-thorsten-high" }`.
+  - `POST /synthesize` `{ text (1–400 chars), lengthScale (0.7–1.7) }` → 200 `audio/mpeg`; 400 for anything else; one synthesis at a time (a second request waits).
 - Results:
   - `GET /api/v1/admin/results/summary?from&to&grade&bucket=day|week|month` → per topic: `submissions`, `children` (distinct codes), `index` (0–100, mean of normalised scale answers), `previous` (same metrics for the preceding range of equal length) and `series: [{ bucket, submissions, index }]`; plus totals.
   - `GET /api/v1/admin/results/questions/:id?from&to&grade&bucket` → `{ question, n, distribution: [{ value|optionId, label, count }], mean?, series: [{ bucket, n, distribution }] }`.
@@ -293,14 +345,46 @@ which the server never grants.
    Morgen wieder!"* instead of questions. Before a tab is chosen, the same topics also appear
    as big tiles in the content area.
 4. **Questions, one per screen**: progress dots, big picture (uploaded image or emoji), text in
-   Andika ≥ 28 px, 🔊 replay button. With `autoRead` the question is read when it appears;
-   an uploaded `audioUrl` replaces speech synthesis for that question. Answer buttons ≥ 96 px.
+   Andika ≥ 28 px, 🔊 replay button. With `autoRead` the question is read when it appears.
+   Answer buttons ≥ 96 px.
    Single answers advance automatically after the spoken label; multi-choice has a "Fertig"
    button; every question has a small "Überspringen".
 5. **Submit** after the topic's last question → *"Danke!"* animation → back to the tabs with ✓.
    All topics done → *"Alles geschafft! Tschüss!"* → start screen after 5 s.
 6. A **"Tschüss 👋"** button is always visible; **idle for `idleSeconds`** → start screen. The
    kiosk session token lives only in memory, so nothing of the previous child survives either.
+7. **Which voice speaks** any text, in this order: the question's own uploaded recording
+   (`audioUrl`) → the Thorsten clip from `voice` → the tablet's speech synthesis (only while a
+   clip is still missing or the voice service is down). Clips and synthesis share one queue:
+   a new prompt either waits for the current one or interrupts it, exactly as before. The
+   "Los geht's" tap unlocks audio playback on iOS for the whole session.
+
+### Voice (Thorsten)
+- **What gets a clip:** every fixed kiosk phrase, and the name of every active topic, the text
+  of every active question and the label of every active option. Text is normalised (trimmed,
+  inner whitespace collapsed) before it is keyed; the key also contains the voice and its
+  `lengthScale`, so a changed text or speed simply has no clip yet.
+- **When it is made — only when the admin is done:** the question editor keeps all text
+  changes as a draft (across topics); a bar at the bottom shows how many changes are pending,
+  with **"Speichern & vertonen"** and "Verwerfen". Saving writes every change, then asks the
+  server once to voice everything missing. There is **no voicing on individual saves**.
+  Every field (text, symbol, colour, kind, "aktiv", picture, recording) is a draft; only
+  structural actions (add, delete, reorder) are saved immediately. A new question's
+  placeholder text is not voiced by itself — the next "Speichern & vertonen" (or "Fehlende
+  vertonen") does it. The server also voices missing
+  texts at startup (fixed phrases on a fresh install; anything a failed run left behind) and
+  after a settings save that changed `speechRate`.
+- **Admin controls:** the Fragen page shows the state ("118 von 120 Texten vertont", working,
+  failed) and **"Alle neu vertonen"**; each question shows its clip state with ▶ and
+  **"Neu vertonen"**; topics and options show ▶ when their clip exists.
+- **Queue:** in the app's memory, one text at a time, oldest first, a text queued twice is
+  queued once. A failed text is listed with its error and retried by the next run; when the
+  voice service is unreachable the run stops and `reachable` is false until the next run
+  succeeds.
+- **Clean-up:** after a run that leaves nothing missing, clips whose text is no longer wanted
+  are deleted (row and file).
+- **Uploaded recordings win:** a question with its own `audioUrl` still gets a Thorsten clip
+  (for when the recording is removed), but the kiosk plays the recording.
 
 ### Repeat protection (the user's question: *wie verhindern, dass ein Kind ganz oft hintereinander abstimmt?*)
 - **Picture code chosen by the child.** A new child picks a free combination of animal, colour
@@ -343,6 +427,8 @@ extended together.
 - The admin sees **aggregates only** — no view, filter or export per child code.
 - `kind` of an answered question cannot change; text/picture may (typo fixes). A changed
   meaning should be a new question.
+- Text and field edits in the question editor are drafts until "Speichern & vertonen" (see
+  Voice); leaving the page or logging out with pending changes asks first.
 - Codes: list with grade, tablet and date; new signs per day (last 14 days). A deactivated code
   cannot log in, keeps its history, and its combination stays taken. Changing a code's grade
   is allowed (a child who picked the wrong number).
@@ -378,8 +464,9 @@ rollback, port published on `172.17.0.1` only).
 
 | | |
 |---|---|
-| Repo | `github.com/JanderHungrige/wieisses` (to be created) |
+| Repo | `github.com/JanderHungrige/wieisses` (public) |
 | Image | `ghcr.io/janderhungrige/wieisses:main` (+ `:<sha>`), built by `.github/workflows/deploy.yml` on push to `main`; the build runs typecheck + tests |
+| Voice image | `ghcr.io/janderhungrige/wieisses-voice:main`, built by `.github/workflows/voice.yml` when `voice/**` changes (or by hand); the build downloads the pinned model (sha256-checked) and synthesises "Hallo" as a smoke test |
 | Host | clone at `/opt/wieisses`, `deploy/.env.prod` (gitignored): `COMPOSE_PROJECT_NAME=wieisses-prod`, `IMAGE_TAG=main`, `APP_PORT=8082`, `ADMIN_PASSWORD=…` |
 | Cron | root, offset **:23** (taken: :00 battlefuel, :08 toprun, :15 ninanatur, :30 funding-tender-tracker, :45 3dmap2) |
 | Proxy | NPM `wieisses.w3rth.de` → `http://172.17.0.1:8082` (already configured, answers 502 until the container runs) |
@@ -387,6 +474,13 @@ rollback, port published on `172.17.0.1` only).
 
 Container: non-root `node` user, read-only root FS, `/tmp` tmpfs, `cap_drop: ALL`,
 `no-new-privileges`, memory 192 MB, healthcheck `GET /healthz`, logs rotated (3 × 10 MB).
+
+Voice container (`voice` service in `deploy/compose.app.yml`): no published port, reached by
+the app as `http://voice:5000` (`VOICE_URL`); non-root, read-only root FS, `/tmp` tmpfs for the
+scratch WAV, `cap_drop: ALL`, `cpus: 1.0` (one of the host's two cores stays free), memory
+768 MB (≈ 400 MB while synthesising, ≈ 30 MB idle), healthcheck `GET /healthz`.
+`deploy/auto-deploy.sh` rolls both services, each with its own health gate and rollback (as
+TopRun does with app + ladder). A change under `deploy/` needs `git pull` in `/opt/wieisses`.
 
 ## Security
 
@@ -409,6 +503,11 @@ Container: non-root `node` user, read-only root FS, `/tmp` tmpfs, `cap_drop: ALL
 - XSS via question texts → rendered as text by Preact only (no `dangerouslySetInnerHTML`);
   strict CSP `default-src 'self'`, `frame-ancestors 'none'`.
 - SQL injection → prepared statements only.
+- Reach the voice service → not published on any host port; only the app on the compose
+  network can call it. It accepts plain text up to 400 characters and a bounded
+  `lengthScale`; the app sends it only admin-saved texts and the fixed phrases, never anything
+  a child or a visitor typed. Clip files get names derived from the key (`[a-f0-9]{32}.mp3`)
+  and go through the same media route and its checks.
 
 **Never exposed:** the admin password or its hash, device/session tokens (only issued once, in a
 cookie), child codes in exports or results, client IPs in the database. Logs carry no codes and
@@ -418,7 +517,13 @@ no tokens.
 
 - Speech synthesis depends on a German voice on the tablet. iPads ship one; some Android
   tablets need the Google TTS German voice installed. Per-question audio uploads are the
-  fallback.
+  fallback. (Since the Thorsten voice, the tablet voice is only the fallback for missing clips.)
+- The Thorsten "high" model is fine-tuned from the US-English "lessac" voice, whose source
+  recordings are licensed for non-commercial use; the Thorsten dataset itself is CC0. Fine for
+  a school survey, not for a commercial product. piper-tts is GPL-3.0 and runs as a separate
+  service (see `voice/THIRD_PARTY.md`).
+- The first full voicing (≈ 75 fixed phrases + all content) takes a few minutes on the host's
+  CPU; until a clip exists the tablet voice speaks that text.
 - A child's grade is fixed at sign-up; there is no school-year rollover (all grades +1) yet —
   the admin can only change grades one code at a time.
 - A tablet whose browser data is cleared loses its device cookie and must be registered again
@@ -429,7 +534,8 @@ no tokens.
 ## Out of scope (MVP)
 
 Free-text answers (moderation and privacy burden with children's writing), per-child views,
-multiple admin accounts, a dev/preview stack, server-side TTS, burst detection.
+multiple admin accounts, a dev/preview stack, burst detection, a separate "how it is
+pronounced" text per question (Thorsten reads the displayed text).
 
 ## Bugs
 

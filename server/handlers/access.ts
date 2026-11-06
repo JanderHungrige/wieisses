@@ -43,6 +43,9 @@ export function settings(app: App): Reply {
 }
 
 export function replaceSettings(app: App, next: Settings): Reply {
+  const before = getSettings(app.db);
   saveSettings(app.db, next);
+  // The speed is part of every clip's key: a new rate means every text is voiced again.
+  if (before.speechRate !== next.speechRate && app.voice.configured) app.voice.generate('missing');
   return ok(getSettings(app.db));
 }

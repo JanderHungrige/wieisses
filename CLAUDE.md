@@ -30,7 +30,17 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
 - `npm run dev:server` — API on http://localhost:8092 (dev password `dev-password-123`, data in `.data/`)
 - `npm run dev` — Vite on http://localhost:5173, proxies the API
 - `DATA_DIR=.data node dev/demo-answers.ts` — eight weeks of demo answers for the dashboard
-- `ADMIN_PASSWORD=… docker compose up --build` — the production image on http://localhost:8082
+- `ADMIN_PASSWORD=… docker compose up --build` — app + Thorsten voice on http://localhost:8082
+- Voice alone for dev: `docker build -t wieisses-voice:local voice/ && docker run --rm -p 127.0.0.1:5050:5000 wieisses-voice:local`,
+  then start the API with `VOICE_URL=http://127.0.0.1:5050`
+
+## Voice (Thorsten)
+- Everything the kiosk speaks is a Thorsten clip keyed by voice + speed + normalised text
+  (`server/domain/voice-texts.ts`). Fixed kiosk sentences live in `shared/phrases.ts` — never
+  write a spoken string inline in a screen or a child-facing server message, or it has no clip.
+- Sentences with a variable part are spoken as fixed parts (`sayParts`), never as one string.
+- Voicing runs only on "Speichern & vertonen", "Fehlende/Alle vertonen", a changed speech rate
+  and server start — never on an individual save (the user's explicit wish).
 
 ## Deployment
 - Live: https://wieisses.w3rth.de/ — push to `main` → GHCR image → host cron rolls it

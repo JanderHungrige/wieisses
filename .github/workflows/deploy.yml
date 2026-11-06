@@ -18,6 +18,7 @@ on:
     paths-ignore:
       - '.mdd/**'
       - 'deploy/**'
+      - 'voice/**'
       - '**.md'
   # A pull request builds and tests the image but never pushes it.
   pull_request:
