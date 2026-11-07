@@ -26,10 +26,16 @@ PAUSE="${HEALTH_WAIT_SLEEP:-5}"
 # The voice first: the app talks to it, and works without it while it rolls.
 SERVICES=(voice app)
 
-# Two overlapping runs racing the same image pull corrupt the containerd content store.
-exec 9>"${WIEISSES_DEPLOY_LOCK:-/tmp/wieisses-auto-deploy.lock}"
-if ! flock -n 9; then
-  echo "auto-deploy: another run holds the lock — skipping this tick"
+# Host-wide lock shared with the other projects on this box (3dmap2, pdf2audiobook): they all use
+# one containerd, and a pull racing another project's `docker image prune` loses layers
+# mid-extraction ("failed to Lchown … no such file or directory"). That kept the 700 MB Kokoro
+# voice image unpullable for 20 minutes on 2026-11-07. WAIT for the lock instead of skipping, so
+# a busy minute queues rather than starves. The file is root-owned 0644: open it read-only.
+LOCK="${WIEISSES_DEPLOY_LOCK:-/tmp/docker-image-deploy.lock}"
+[ -e "$LOCK" ] || : >"$LOCK"
+exec 9<"$LOCK"
+if ! flock -w 90 9; then
+  echo "auto-deploy: shared lock busy for 90s — skipping this tick"
   exit 0
 fi
 
@@ -130,5 +136,6 @@ status=0
 for svc in "${SERVICES[@]}"; do
   roll "$svc" || status=1
 done
-docker image prune -f >/dev/null 2>&1 || true
+# Never prune fresh layers: something mid-extraction for another project is untagged too.
+docker image prune -f --filter "until=24h" >/dev/null 2>&1 || true
 exit "$status"

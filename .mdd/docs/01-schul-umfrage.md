@@ -604,6 +604,14 @@ no tokens.
   Piper model only; Kokoro-82M and the Thorsten fine-tune are Apache 2.0, espeak-ng (GPL-3.0)
   runs inside the separate voice container. The German G2P and the model code come from
   personal forks (`semidark/misaki`, `semidark/kokoro`), pinned to commits.
+- Rolling the 700 MB Kokoro voice image failed for 20 minutes on 2026-11-07 with the same
+  containerd errors ("failed to Lchown … no such file", "parent snapshot … does not exist"):
+  battlefuel, funding-tender-tracker and toprun run `docker image prune -f` every minute without
+  the host-wide lock, and the big layer never extracted between two prunes. Unblocked by one
+  manual pull holding every project's deploy lock (`flock /tmp/docker-image-deploy.lock flock
+  /tmp/battlefuel-auto-deploy.lock … docker pull …`, 26 s). `deploy/auto-deploy.sh` now waits for
+  the shared `/tmp/docker-image-deploy.lock` and prunes only layers older than 24 h; the other
+  projects still prune without it, so a big image can hit this again.
 - Kokoro on the Mac's Docker took ≈ 6 s per short sentence on one CPU (Piper there was just as
   slow, while it took 0.3–2 s on the host); the host's time per text is measured at rollout.
 
