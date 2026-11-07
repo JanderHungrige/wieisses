@@ -41,10 +41,10 @@ describe('Voice texts (server/domain/voice-texts.ts, shared/phrases.ts)', () => 
       expect(clipKey('  Danke! ', 1.11)).toBe(key);
     });
 
-    it('carries the clip format version, so trimmed (v2) clips never reuse a v1 key', () => {
+    it('carries the voice and the clip format version, so a new voice or format never reuses a key', () => {
       const sha = (s: string) => createHash('sha256').update(s).digest('hex');
-      expect(clipKey(' Danke! ', 1.11)).toBe(sha('thorsten-high|v2|1.11|Danke!'));
-      expect(clipKey('Danke!', 1.11)).not.toBe(sha('thorsten-high|1.11|Danke!'));
+      expect(clipKey(' Danke! ', 1.11)).toBe(sha('thorsten-kokoro|v2|1.11|Danke!'));
+      expect(clipKey('Danke!', 1.11)).not.toBe(sha('thorsten-high|v2|1.11|Danke!'));
     });
   });
 

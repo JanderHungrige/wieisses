@@ -18,6 +18,9 @@ source_files:
   - web/admin/pages/VoicePanel.tsx
   - voice/server.py
   - voice/audio.py
+  - voice/kokoro_voice.py
+  - voice/export.py
+  - voice/requirements-export.txt
   - voice/Dockerfile
   - voice/requirements.txt
   - voice/THIRD_PARTY.md
@@ -153,12 +156,13 @@ test_files:
   - tests/api/fake-voice.ts
   - tests/unit/clip-cache.test.ts
   - voice/test_audio.py
+  - voice/test_kokoro_voice.py
 data_flow: greenfield
 last_synced: 2026-11-07
-status: complete
+status: in_progress
 phase: all
 mdd_version: 11
-tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, piper, read-aloud-buttons, admin-panel, sqlite]
+tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, kokoro, onnx, read-aloud-buttons, admin-panel, sqlite]
 path: Umfrage
 integration_contracts: []
 satisfies_contracts: []
@@ -176,7 +180,8 @@ topics — lunch, homework supervision, the carers, the activities on offer — 
 tablets, daily or whenever they like. Every question is shown as a **picture, as text and
 read aloud**, so a child who cannot read yet can answer alone. Staff see the results over
 time, as charts, in a password-protected admin panel, and maintain the topics and questions
-there. Everything the kiosk says is spoken in one voice — **Thorsten-Voice** (Piper, high),
+there. Everything the kiosk says is spoken in one voice — **Thorsten-Voice** (Kokoro, the
+StyleTTS2 model fine-tuned on Thorsten's recordings; until 2026-11-07 Piper "high"),
 generated on the server when the admin saves their changes.
 
 Live at `https://wieisses.w3rth.de` (Nginx Proxy Manager → `172.17.0.1:8082`).
@@ -199,10 +204,11 @@ tablet (kiosk SPA, /)          admin browser (admin SPA, /admin/)
 └──────────────────────────────── /data volume ───────────────────────────────┘
         │ http://voice:5000 (compose network only)   wieisses.sqlite, media/, backups/
         ▼
-┌──────── voice container (Python 3.12 + piper-tts 1.8.0 + Thorsten high) ────────┐
-│ voice/server.py   POST /synthesize {text, lengthScale} → audio/mpeg (via lame)   │
-│                   one at a time, ≤ 1 CPU, model released after 120 s idle        │
-└──────────────────────────────────────────────────────────────────────────────────┘
+┌──── voice container (Python 3.12 + onnxruntime + Thorsten-Voice/Kokoro as ONNX) ────┐
+│ voice/server.py        POST /synthesize {text, lengthScale} → audio/mpeg (via lame) │
+│ voice/kokoro_voice.py  German G2P (misaki + espeak-ng) → tokens → ONNX → 24 kHz PCM │
+│                        one at a time, ≤ 1 CPU, model released after 120 s idle      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - **Runtime:** Node 24 runs the TypeScript directly (type stripping, like TopRun's ladder
@@ -236,7 +242,7 @@ SQLite, one file `/data/wieisses.sqlite`, schema created and migrated at startup
 | `device` | id, label, token_hash (sha256), created_at, last_seen_at, revoked | registered tablets |
 | `admin_session` | token_hash (PK), created_at, expires_at | |
 | `setting` | key (PK), value (JSON) | see Settings |
-| `voice_clip` | key (PK, sha256 hex of `thorsten-high|v2|<lengthScale>|<text>`; `v2` = clip format, see Voice), text, url, created_at | one MP3 per distinct spoken text; file `/data/media/<key[0..32]>.mp3` |
+| `voice_clip` | key (PK, sha256 hex of `thorsten-kokoro|v2|<lengthScale>|<text>`; `v2` = clip format, see Voice), text, url, created_at | one MP3 per distinct spoken text; file `/data/media/<key[0..32]>.mp3` |
 
 Indexes: `submission(day)`, `submission(topic_id, day)`, `answer(question_id)`,
 `answer(submission_id)`.
@@ -278,7 +284,7 @@ fixed parts — e.g. *"Das ist jetzt dein Geheimzeichen:"* · *Fuchs* · *Blau* 
 | `title` | `"Wie isses?"` | start-screen title |
 | `extendedWeekdays` | `[5]` | ISO weekdays (1 = Mon … 7 = Sun) on which `extended` questions are added |
 | `autoRead` | `true` | read each question aloud when it appears |
-| `speechRate` | `0.9` | 0.6–1.3; tablet voice rate, and Thorsten's `lengthScale = round(1 / speechRate, 2)` — changing it re-voices everything |
+| `speechRate` | `0.9` | 0.6–1.3; tablet voice rate, and the clips' `lengthScale = round(1 / speechRate, 2)`, which the voice service turns into Kokoro's speed `round((1 / 0.9) / lengthScale, 2)` — so the default 0.9 speaks at Kokoro's own pace (speed 1.0, chosen by ear on 2026-11-07); changing it re-voices everything |
 | `idleSeconds` | `90` | kiosk returns to the start screen after this much inactivity (20–600) |
 | `grades` | `[1, 2, 3, 4]` | grades a new child can pick (1–6; Berlin/Brandenburg primary schools run to 6) |
 
@@ -318,11 +324,11 @@ which the server never grants.
 - Devices: `GET /api/v1/admin/devices` → list (no tokens). `POST /api/v1/admin/devices` `{ label }` → 201 and sets the `wi_device` cookie **on the calling browser** (the admin registers the tablet from the tablet itself). `PATCH /api/v1/admin/devices/:id` `{ revoked?, label? }` → 200.
 - Settings: `GET /api/v1/admin/settings` → 200 settings. `PUT /api/v1/admin/settings` (full object) → 200 | 400. A changed `speechRate` starts re-voicing everything.
 - Voice:
-  - `GET /api/v1/admin/voice` → `{ configured, reachable, voice: "Thorsten (high)", lengthScale, total, ready, queued, working: text|null, failed: [{ text, message }] }` — `total` = distinct texts that should have a clip.
+  - `GET /api/v1/admin/voice` → `{ configured, reachable, voice: "Thorsten (Kokoro)", lengthScale, total, ready, queued, working: text|null, failed: [{ text, message }] }` — `total` = distinct texts that should have a clip.
   - `POST /api/v1/admin/voice/generate` `{ mode: "missing" | "all" }` → 202 status. `missing` voices every wanted text without a clip (what "Speichern & vertonen" calls); `all` re-voices everything. 503 `voice_unavailable` when `VOICE_URL` is not configured.
   - `POST /api/v1/admin/voice/clip` `{ text }` → 202 status; re-voices one text ("Neu vertonen"). 400 `validation` when the text is not one the kiosk speaks.
 - Voice service (internal, compose network only, never published):
-  - `GET /healthz` → `{ status: "ok", voice: "de_DE-thorsten-high" }`.
+  - `GET /healthz` → `{ status: "ok", voice: "thorsten-voice-kokoro" }`.
   - `POST /synthesize` `{ text (1–400 chars), lengthScale (0.7–1.7) }` → 200 `audio/mpeg`; 400 for anything else; one synthesis at a time (a second request waits).
 - Results:
   - `GET /api/v1/admin/results/summary?from&to&grade&bucket=day|week|month` → per topic: `submissions`, `children` (distinct codes), `index` (0–100, mean of normalised scale answers), `previous` (same metrics for the preceding range of equal length) and `series: [{ bucket, submissions, index }]`; plus totals.
@@ -401,7 +407,16 @@ which the server never grants.
   are deleted (row and file).
 - **Uploaded recordings win:** a question with its own `audioUrl` still gets a Thorsten clip
   (for when the recording is removed), but the kiosk plays the recording.
-- **Clip audio is trimmed:** the voice service cuts the silence Piper leaves around speech to
+- **The voice:** `Thorsten-Voice/Kokoro` (Kokoro-82M / StyleTTS2 fine-tuned on the CC0
+  Thorsten dataset, Apache 2.0) at revision `734e593` — the checkpoint the user picked in a
+  listening test against Piper. The image build exports it to ONNX (`voice/export.py`, PyTorch
+  only in that build stage); at run time the service turns text into German phonemes with the
+  model's own G2P (misaki's German module on espeak-ng, `ʏ` → `y` as the model README says),
+  runs the ONNX model with Thorsten's style vector and **peak-normalises** the result (Kokoro's
+  raw output is ≈ 8 dB quieter than Piper's was). Texts longer than 200 phonemes are spoken in
+  chunks cut after a sentence mark (else a clause mark, else a space), which keeps the memory
+  of one run small.
+- **Clip audio is trimmed:** the voice service cuts the silence the model leaves around speech to
   20 ms before and 50 ms after it (threshold 2 % of full scale, 5 ms fade-in/out; an
   all-silent result is left as it is), so composed sentences have only a short, natural gap
   between parts. The clip key carries a **clip format version** (`v2` since trimming); bumping
@@ -488,7 +503,7 @@ rollback, port published on `172.17.0.1` only).
 |---|---|
 | Repo | `github.com/JanderHungrige/wieisses` (public) |
 | Image | `ghcr.io/janderhungrige/wieisses:main` (+ `:<sha>`), built by `.github/workflows/deploy.yml` on push to `main`; the build runs typecheck + tests |
-| Voice image | `ghcr.io/janderhungrige/wieisses-voice:main`, built by `.github/workflows/voice.yml` when `voice/**` changes (or by hand); the build downloads the pinned model (sha256-checked) and synthesises "Hallo" as a smoke test |
+| Voice image | `ghcr.io/janderhungrige/wieisses-voice:main` (≈ 700 MB), built by `.github/workflows/voice.yml` when `voice/**` changes (or by hand); an export stage downloads the pinned checkpoint (sha256-checked) and turns it into ONNX with PyTorch, the runtime stage gets only the ONNX model, runs the voice unit tests and synthesises "Hallo" as a smoke test |
 | Host | clone at `/opt/wieisses`, `deploy/.env.prod` (gitignored): `COMPOSE_PROJECT_NAME=wieisses-prod`, `IMAGE_TAG=main`, `APP_PORT=8082`, `ADMIN_PASSWORD=…` |
 | Cron | root, offset **:23** (taken: :00 battlefuel, :08 toprun, :15 ninanatur, :30 funding-tender-tracker, :45 3dmap2) |
 | Proxy | NPM `wieisses.w3rth.de` → `http://172.17.0.1:8082` (already configured, answers 502 until the container runs) |
@@ -498,9 +513,14 @@ Container: non-root `node` user, read-only root FS, `/tmp` tmpfs, `cap_drop: ALL
 `no-new-privileges`, memory 192 MB, healthcheck `GET /healthz`, logs rotated (3 × 10 MB).
 
 Voice container (`voice` service in `deploy/compose.app.yml`): no published port, reached by
-the app as `http://voice:5000` (`VOICE_URL`); non-root, read-only root FS, `/tmp` tmpfs for the
-scratch WAV, `cap_drop: ALL`, `cpus: 1.0` (one of the host's two cores stays free), memory
-768 MB (≈ 400 MB while synthesising, ≈ 30 MB idle), healthcheck `GET /healthz`.
+the app as `http://voice:5000` (`VOICE_URL`); non-root, read-only root FS, `cap_drop: ALL`,
+`cpus: 1.0` (one of the host's two cores stays free), memory 768 MB, healthcheck `GET /healthz`.
+`/tmp` is a 16 MB tmpfs **with exec**: phonemizer copies espeak-ng's shared library there and
+loads it from the copy. Memory (measured 2026-11-07, 71 texts up to 400 characters, 1 CPU,
+768 MB): ≈ 380–420 MiB while the model is loaded, peak 555 MiB, ≈ 30 MB idle after the
+model is released. That needs onnxruntime's memory arena off and glibc returning large buffers
+(`MALLOC_MMAP_THRESHOLD_`/`MALLOC_TRIM_THRESHOLD_` in the image); with the default arena the
+service kept every text's working memory and grew past 760 MiB in three texts.
 `deploy/auto-deploy.sh` rolls both services, each with its own health gate and rollback (as
 TopRun does with app + ladder). A change under `deploy/` needs `git pull` in `/opt/wieisses`.
 
@@ -579,6 +599,13 @@ no tokens.
   normalising) and slower (speed ≈ 1.1–1.2 matches Piper at 1.11). In that revision
   `model.pth` is epoch 10, not epoch 5 as its README says.
 - Both voices stress *„Worüber“* on the first syllable (espeak-ng's dictionary).
+- Since 2026-11-07 the kiosk speaks with Kokoro-Thorsten instead of Piper (the user found it
+  less wooden in a listening test). The non-commercial "lessac" note above applies to the old
+  Piper model only; Kokoro-82M and the Thorsten fine-tune are Apache 2.0, espeak-ng (GPL-3.0)
+  runs inside the separate voice container. The German G2P and the model code come from
+  personal forks (`semidark/misaki`, `semidark/kokoro`), pinned to commits.
+- Kokoro on the Mac's Docker took ≈ 6 s per short sentence on one CPU (Piper there was just as
+  slow, while it took 0.3–2 s on the host); the host's time per text is measured at rollout.
 
 ## Out of scope (MVP)
 

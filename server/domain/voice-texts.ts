@@ -2,12 +2,13 @@
 import { createHash } from 'node:crypto';
 import { fixedPhrases, normaliseText } from '../../shared/phrases.ts';
 
-export const VOICE_ID = 'thorsten-high';
-export const VOICE_NAME = 'Thorsten (high)';
+export const VOICE_ID = 'thorsten-kokoro';
+export const VOICE_NAME = 'Thorsten (Kokoro)';
 /** Bumped when the voice service's audio changes (v2: trimmed silence) — every clip is re-made. */
 export const CLIP_FORMAT = 'v2';
 
-/** Piper's length scale from the kiosk's speech rate: slower speech, longer scale. */
+/** The clips' length scale from the kiosk's speech rate: slower speech, longer scale (the voice
+ *  service turns it into Kokoro's speed). */
 export function lengthScaleFor(speechRate: number): number {
   return Math.round((1 / speechRate) * 100) / 100;
 }
