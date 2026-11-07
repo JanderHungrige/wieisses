@@ -44,6 +44,10 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
 - On the topic and question pages every child-facing button has its own 🔊 (`SpeakButton` in
   `web/kiosk/Prompt.tsx`); tapping the button itself never speaks, it only calls `stopSpeech()`
   (the user's explicit wish). The picture-code screens still speak each pick.
+- The voice is Thorsten-Voice/Kokoro, exported to ONNX in the image's build stage
+  (`voice/export.py`). PyTorch never goes into the runtime stage, and onnxruntime's memory
+  arena stays off (with the `MALLOC_*` env in `voice/Dockerfile`) — with the arena the service
+  grows past its 768 MB limit within a few texts.
 - A change to the voice service's audio bumps `CLIP_FORMAT` in `server/domain/voice-texts.ts`
   and rolls out voice first: push the `voice/**` commit alone, wait for the host to roll it,
   then push the app (doc 01, Deployment).
