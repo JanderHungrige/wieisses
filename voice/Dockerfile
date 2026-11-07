@@ -20,9 +20,10 @@ ADD --chmod=644 --checksum=sha256:9df1c43c61149ef9b39e618e2b861fbe41e1fcea9390b2
 ADD --chmod=644 --checksum=sha256:6de734444e4c3f9e33b7ebe2746dbc19b71e85f613e79c65acf623200b99a76a \
   ${MODEL_BASE}/de_DE-thorsten-high.onnx.json /voice/de_DE-thorsten-high.onnx.json
 
-COPY server.py THIRD_PARTY.md ./
+COPY server.py audio.py test_audio.py THIRD_PARTY.md ./
 
-# Smoke test: the image only exists if it can actually speak.
+# The image only exists if its silence trimming passes its tests and it can actually speak.
+RUN python -m unittest -v test_audio
 RUN python -c "import server; mp3 = server.synthesize('Hallo, wie isses?', 1.0); assert len(mp3) > 2000, len(mp3); print('smoke test ok', len(mp3), 'bytes')"
 
 # Not "voice": Debian already has a system group of that name.

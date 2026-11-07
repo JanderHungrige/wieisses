@@ -22,6 +22,8 @@ import onnxruntime
 from piper import PiperVoice, SynthesisConfig
 from piper.config import PiperConfig
 
+from audio import trim_wav
+
 MODEL = os.environ.get("VOICE_MODEL", "/voice/de_DE-thorsten-high.onnx")
 VOICE_NAME = "de_DE-thorsten-high"
 IDLE_SECONDS = int(os.environ.get("VOICE_IDLE_SECONDS", "120"))
@@ -73,7 +75,7 @@ def _release_when_idle():
 
 
 def synthesize(text, length_scale):
-    """Text -> MP3 bytes (mono, 48 kbit/s CBR)."""
+    """Text -> MP3 bytes (mono, 48 kbit/s CBR), the silence around the speech trimmed."""
     with _lock:
         buffer = io.BytesIO()
         with wave.open(buffer, "wb") as wav:
@@ -83,7 +85,7 @@ def synthesize(text, length_scale):
     # its length. 48 kbit/s mono is plenty for speech at 22 kHz.
     encoded = subprocess.run(
         ["lame", "--quiet", "-m", "m", "--cbr", "-b", "48", "-", "-"],
-        input=buffer.getvalue(),
+        input=trim_wav(buffer.getvalue()),
         stdout=subprocess.PIPE,
         check=True,
         timeout=60,
