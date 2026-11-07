@@ -155,7 +155,7 @@ test_files:
   - voice/test_audio.py
 data_flow: greenfield
 last_synced: 2026-11-07
-status: in_progress
+status: complete
 phase: all
 mdd_version: 11
 tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, piper, read-aloud-buttons, admin-panel, sqlite]
@@ -552,6 +552,8 @@ no tokens.
 - The first full voicing (≈ 75 fixed phrases + all content) takes a few minutes on the host's
   CPU; until a clip exists the tablet voice speaks that text. Measured on the host on
   2026-11-07: 0.3–2 s per text on one core, 109 texts in about 90 s, ~240 MB while voicing.
+  The clip format v2 rollout (trimmed silence) re-voiced all 109 texts in ≈ 2 min (0.3–4 s
+  each, no failures) and pruned the 109 v1 clips.
 - A run that finds the voice service unreachable stops and is **not retried by itself**. It
   happened on the first rollout (the app restarted before the voice container existed); the
   admin's "Fehlende vertonen" or an app restart starts it again. In normal rolls the voice
