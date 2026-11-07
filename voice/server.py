@@ -1,11 +1,11 @@
 """Thorsten-Voice service for wieisses (doc 01, "Voice (Thorsten)").
 
-    GET  /healthz                              -> {"status": "ok", "voice": "de_DE-thorsten-high"}
+    GET  /healthz                              -> {"status": "ok", "voice": "thorsten-voice-kokoro"}
     POST /synthesize {"text", "lengthScale"}   -> audio/mpeg
 
-Reachable only on the compose network. One synthesis at a time; the model is loaded on the
-first request and released after VOICE_IDLE_SECONDS without one, so the ~400 MB it needs are
-only held while the admin is actually voicing texts.
+Reachable only on the compose network. One synthesis at a time; the model (Thorsten-Voice/Kokoro
+as ONNX, see kokoro_voice.py) is loaded on the first request and released after
+VOICE_IDLE_SECONDS without one, so the memory it needs is only held while texts are voiced.
 """
 
 import gc
@@ -19,13 +19,12 @@ import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import onnxruntime
-from piper import PiperVoice, SynthesisConfig
-from piper.config import PiperConfig
 
 from audio import trim_wav
+from kokoro_voice import RATE, KokoroVoice, speed_for
 
-MODEL = os.environ.get("VOICE_MODEL", "/voice/de_DE-thorsten-high.onnx")
-VOICE_NAME = "de_DE-thorsten-high"
+MODEL_DIR = os.environ.get("VOICE_MODEL_DIR", "/voice/model")
+VOICE_NAME = "thorsten-voice-kokoro"
 IDLE_SECONDS = int(os.environ.get("VOICE_IDLE_SECONDS", "120"))
 # As many inference threads as the container may use CPUs. onnxruntime's default — one per core
 # it can see — makes threads queue for the 1-CPU quota and runs several times slower.
@@ -45,14 +44,9 @@ def log(msg, **fields):
 
 
 def _load():
-    options = onnxruntime.SessionOptions()
-    options.intra_op_num_threads = THREADS
-    options.inter_op_num_threads = 1
-    with open(f"{MODEL}.json", "r", encoding="utf-8") as config:
-        return PiperVoice(
-            config=PiperConfig.from_dict(json.load(config)),
-            session=onnxruntime.InferenceSession(MODEL, sess_options=options, providers=["CPUExecutionProvider"]),
-        )
+    return KokoroVoice(
+        f"{MODEL_DIR}/kokoro-thorsten.onnx", f"{MODEL_DIR}/thorsten-styles.npy", f"{MODEL_DIR}/vocab.json", THREADS
+    )
 
 
 def _voice():
@@ -77,12 +71,16 @@ def _release_when_idle():
 def synthesize(text, length_scale):
     """Text -> MP3 bytes (mono, 48 kbit/s CBR), the silence around the speech trimmed."""
     with _lock:
-        buffer = io.BytesIO()
-        with wave.open(buffer, "wb") as wav:
-            _voice().synthesize_wav(text, wav, syn_config=SynthesisConfig(length_scale=length_scale))
+        pcm = _voice().synthesize(text, speed_for(length_scale))
         _state["last"] = time.monotonic()
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(RATE)
+        wav.writeframes(pcm)
     # Constant bitrate: written to a pipe, a VBR file would lack the header that tells players
-    # its length. 48 kbit/s mono is plenty for speech at 22 kHz.
+    # its length. 48 kbit/s mono is plenty for speech at 24 kHz.
     encoded = subprocess.run(
         ["lame", "--quiet", "-m", "m", "--cbr", "-b", "48", "-", "-"],
         input=trim_wav(buffer.getvalue()),

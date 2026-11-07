@@ -1,9 +1,10 @@
 name: voice-image
 
 # Build the Thorsten-Voice image (voice/) and push it to GHCR — only when voice/ changes, because
-# the image carries a 114 MB model that never changes with the app. The build downloads the model
-# pinned by revision and sha256 and synthesises "Hallo" as a smoke test; a voice that cannot
-# speak never reaches the registry. The host cron rolls it like the app (deploy/auto-deploy.sh).
+# the image carries a 325 MB model that never changes with the app. The build downloads the
+# Kokoro checkpoint pinned by revision and sha256, exports it to ONNX, runs the voice unit tests
+# and synthesises "Hallo" as a smoke test; a voice that cannot speak never reaches the registry.
+# The host cron rolls it like the app (deploy/auto-deploy.sh).
 
 on:
   workflow_dispatch:
