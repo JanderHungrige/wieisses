@@ -4,7 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { CodePicks } from '../../shared/catalog.ts';
 import type { AnswerInput, KioskConfig, KioskSession, KioskTopic } from '../../shared/schema.ts';
 import { ApiError, api } from '../lib/api.ts';
-import { initSpeech, say, stopSpeech } from '../lib/speech.ts';
+import { initSpeech, stopSpeech } from '../lib/speech.ts';
 import { useIdle } from './useIdle.ts';
 
 export type Phase =
@@ -70,8 +70,9 @@ export function useKiosk() {
     reset,
     enterCode: (mode: 'new' | 'returning', picks: CodePicks, grade: number | null) => enterCode(ctx, mode, picks, grade),
     submit: (topic: KioskTopic, answers: AnswerInput[]) => submit(ctx, topic, answers),
+    // Opening a topic speaks nothing; its 🔊 reads the name (doc 01, step 3).
     openTopic: (topic: KioskTopic) => {
-      say(topic.name, true);
+      stopSpeech();
       setPhase({ name: 'topics', topicId: topic.id });
     },
   };

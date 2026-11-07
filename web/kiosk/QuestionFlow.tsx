@@ -1,11 +1,12 @@
 // One topic's questions, one per screen: picture, text, 🔊, big answers, "Überspringen".
-// The answers are handed in together after the last question (doc 01, step 4).
+// Every answer has its own 🔊; tapping an answer speaks nothing (doc 01, step 4).
+// The answers are handed in together after the last question.
 import { useEffect, useState } from 'preact/hooks';
 import { FACES } from '../../shared/catalog.ts';
 import type { AnswerInput, KioskQuestion, KioskTopic } from '../../shared/schema.ts';
 import { PHRASE } from '../../shared/phrases.ts';
-import { say, sayQuestion } from '../lib/speech.ts';
-import { Prompt } from './Prompt.tsx';
+import { sayQuestion, stopSpeech } from '../lib/speech.ts';
+import { Prompt, SpeakButton } from './Prompt.tsx';
 
 type Props = { topic: KioskTopic; autoRead: boolean; onFinish: (answers: AnswerInput[]) => void };
 
@@ -15,6 +16,7 @@ export function QuestionFlow({ topic, autoRead, onFinish }: Props) {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerInput[]>([]);
   const [picked, setPicked] = useState<number[]>([]);
+  const [chosen, setChosen] = useState<string | null>(null); // the tapped single answer, shown until the next question
   const [locked, setLocked] = useState(false);
   const question = topic.questions[index];
 
@@ -29,6 +31,7 @@ export function QuestionFlow({ topic, autoRead, onFinish }: Props) {
     window.setTimeout(() => {
       setLocked(false);
       setPicked([]);
+      setChosen(null);
       if (index + 1 >= topic.questions.length) onFinish(next);
       else {
         setAnswers(next);
@@ -37,13 +40,14 @@ export function QuestionFlow({ topic, autoRead, onFinish }: Props) {
     }, ADVANCE_MS);
   }
 
-  function answer(input: AnswerInput, label: string): void {
-    say(label, true);
+  function answer(input: AnswerInput, tile: string | null): void {
+    stopSpeech();
+    setChosen(tile);
     advance([...answers, input]);
   }
 
-  function toggle(optionId: number, label: string): void {
-    say(label, true);
+  function toggle(optionId: number): void {
+    stopSpeech();
     setPicked(picked.includes(optionId) ? picked.filter((id) => id !== optionId) : [...picked, optionId]);
   }
 
@@ -52,21 +56,27 @@ export function QuestionFlow({ topic, autoRead, onFinish }: Props) {
       <Progress count={topic.questions.length} at={index} />
       <Picture imageUrl={question.imageUrl} icon={question.icon} />
       <Prompt id="question-text" class="question-text" text={question.text} onSpeak={() => sayQuestion(question.text, question.audioUrl)} />
-      <Answers question={question} picked={picked} locked={locked} onAnswer={answer} onToggle={toggle} />
+      <Answers question={question} picked={picked} chosen={chosen} locked={locked} onAnswer={answer} onToggle={toggle} />
       <div class="question-actions">
         {question.kind === 'choice' && question.multi && (
-          <button
-            type="button"
-            class="done-button"
-            disabled={locked || picked.length === 0}
-            onClick={() => answer({ questionId: question.id, optionIds: picked }, PHRASE.done)}
-          >
-            Fertig ✓
-          </button>
+          <span class="action-slot">
+            <button
+              type="button"
+              class="done-button"
+              disabled={locked || picked.length === 0}
+              onClick={() => answer({ questionId: question.id, optionIds: picked }, null)}
+            >
+              Fertig ✓
+            </button>
+            <SpeakButton text={PHRASE.done} disabled={locked} />
+          </span>
         )}
-        <button type="button" class="skip" disabled={locked} onClick={() => (say(PHRASE.skip, true), advance(answers))}>
-          Überspringen ⏭
-        </button>
+        <span class="action-slot">
+          <button type="button" class="skip" disabled={locked} onClick={() => (stopSpeech(), advance(answers))}>
+            Überspringen ⏭
+          </button>
+          <SpeakButton text={PHRASE.skip} disabled={locked} />
+        </span>
       </div>
     </section>
   );
@@ -90,26 +100,30 @@ export function Picture({ imageUrl, icon, small = false }: { imageUrl: string | 
 type AnswersProps = {
   question: KioskQuestion;
   picked: number[];
+  chosen: string | null;
   locked: boolean;
-  onAnswer: (input: AnswerInput, label: string) => void;
-  onToggle: (optionId: number, label: string) => void;
+  onAnswer: (input: AnswerInput, tile: string) => void;
+  onToggle: (optionId: number) => void;
 };
 
-function Answers({ question, picked, locked, onAnswer, onToggle }: AnswersProps) {
+function Answers({ question, picked, chosen, locked, onAnswer, onToggle }: AnswersProps) {
   if (question.kind !== 'choice') {
     return (
       <div class={`answers faces faces-${FACES[question.kind].length}`}>
         {FACES[question.kind].map((face) => (
-          <button
-            type="button"
-            class="tile face"
-            style={{ background: face.tint }}
-            disabled={locked}
-            onClick={() => onAnswer({ questionId: question.id, value: face.value }, face.label)}
-          >
-            <span class="big" aria-hidden="true">{face.emoji}</span>
-            <span class="label">{face.label}</span>
-          </button>
+          <div class="tile-slot">
+            <button
+              type="button"
+              class={chosen === `v${face.value}` ? 'tile face picked' : 'tile face'}
+              style={{ background: face.tint }}
+              disabled={locked}
+              onClick={() => onAnswer({ questionId: question.id, value: face.value }, `v${face.value}`)}
+            >
+              <span class="big" aria-hidden="true">{face.emoji}</span>
+              <span class="label">{face.label}</span>
+            </button>
+            <SpeakButton text={face.label} class="speak-corner" disabled={locked} />
+          </div>
         ))}
       </div>
     );
@@ -119,15 +133,18 @@ function Answers({ question, picked, locked, onAnswer, onToggle }: AnswersProps)
   return (
     <div class="answers options" style={{ '--cols': columns }}>
       {question.options.map((option) => {
-        const on = picked.includes(option.id);
+        const on = picked.includes(option.id) || chosen === `o${option.id}`;
         const click = () =>
-          question.multi ? onToggle(option.id, option.label) : onAnswer({ questionId: question.id, optionIds: [option.id] }, option.label);
+          question.multi ? onToggle(option.id) : onAnswer({ questionId: question.id, optionIds: [option.id] }, `o${option.id}`);
         return (
-          <button type="button" class={on ? 'tile option picked' : 'tile option'} aria-pressed={question.multi ? on : undefined} disabled={locked} onClick={click}>
-            <Picture imageUrl={option.imageUrl} icon={option.icon} small />
-            <span class="label">{option.label}</span>
-            {on && <span class="check" aria-hidden="true">✓</span>}
-          </button>
+          <div class="tile-slot">
+            <button type="button" class={on ? 'tile option picked' : 'tile option'} aria-pressed={question.multi ? on : undefined} disabled={locked} onClick={click}>
+              <Picture imageUrl={option.imageUrl} icon={option.icon} small />
+              <span class="label">{option.label}</span>
+              {on && <span class="check" aria-hidden="true">✓</span>}
+            </button>
+            <SpeakButton text={option.label} class="speak-corner" disabled={locked} />
+          </div>
         );
       })}
     </div>

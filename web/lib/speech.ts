@@ -2,12 +2,14 @@
 // clip, else — only while a clip is missing — the tablet's German voice. One queue for all three,
 // so a new prompt either waits for the current one or interrupts it.
 import { normaliseText } from '../../shared/phrases.ts';
+import { createClipCache } from './clip-cache.ts';
 
 type Item = { kind: 'audio'; url: string } | { kind: 'tts'; text: string };
 
 let rate = 0.9;
 let voice: SpeechSynthesisVoice | undefined;
 let clips: Record<string, string> = {};
+const held = createClipCache();
 let queue: Item[] = [];
 let busy = false;
 let turn = 0; // ignores late "ended" events from something that was interrupted
@@ -44,6 +46,7 @@ function silence(): string {
 export function initSpeech(speechRate: number, voiceClips: Record<string, string> = {}): void {
   rate = speechRate;
   clips = voiceClips;
+  void held.prefetch(Object.values(voiceClips));
   chooseVoice();
   synth()?.addEventListener('voiceschanged', chooseVoice);
 }
@@ -83,7 +86,7 @@ function play(url: string, finish: () => void): void {
   if (!player) return finish();
   player.onended = finish;
   player.onerror = finish;
-  player.src = url;
+  player.src = held.resolve(url);
   player.play().catch(finish);
 }
 

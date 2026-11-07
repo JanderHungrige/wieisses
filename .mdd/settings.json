@@ -1,8 +1,12 @@
 {
   "autoDiscovery": true,
   "stack": {
-    "language": [],
-    "runtime": [],
+    "language": [
+      "typescript"
+    ],
+    "runtime": [
+      "node"
+    ],
     "frameworks": [],
     "orm": [],
     "auth": []

@@ -17,6 +17,7 @@ source_files:
   - web/admin/pages/TopicEditor.tsx
   - web/admin/pages/VoicePanel.tsx
   - voice/server.py
+  - voice/audio.py
   - voice/Dockerfile
   - voice/requirements.txt
   - voice/THIRD_PARTY.md
@@ -59,6 +60,7 @@ source_files:
   - server/ops/backup.ts
   - web/lib/api.ts
   - web/lib/speech.ts
+  - web/lib/clip-cache.ts
   - web/index.html
   - web/kiosk/main.tsx
   - web/kiosk/Kiosk.tsx
@@ -149,12 +151,14 @@ test_files:
   - tests/unit/voice-texts.test.ts
   - tests/api/voice.test.ts
   - tests/api/fake-voice.ts
+  - tests/unit/clip-cache.test.ts
+  - voice/test_audio.py
 data_flow: greenfield
 last_synced: 2026-11-07
-status: complete
+status: in_progress
 phase: all
 mdd_version: 11
-tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, piper, admin-panel, sqlite]
+tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, piper, read-aloud-buttons, admin-panel, sqlite]
 path: Umfrage
 integration_contracts: []
 satisfies_contracts: []
@@ -232,7 +236,7 @@ SQLite, one file `/data/wieisses.sqlite`, schema created and migrated at startup
 | `device` | id, label, token_hash (sha256), created_at, last_seen_at, revoked | registered tablets |
 | `admin_session` | token_hash (PK), created_at, expires_at | |
 | `setting` | key (PK), value (JSON) | see Settings |
-| `voice_clip` | key (PK, sha256 hex of `thorsten-high|<lengthScale>|<text>`), text, url, created_at | one MP3 per distinct spoken text; file `/data/media/<key[0..32]>.mp3` |
+| `voice_clip` | key (PK, sha256 hex of `thorsten-high|v2|<lengthScale>|<text>`; `v2` = clip format, see Voice), text, url, created_at | one MP3 per distinct spoken text; file `/data/media/<key[0..32]>.mp3` |
 
 Indexes: `submission(day)`, `submission(topic_id, day)`, `answer(question_id)`,
 `answer(submission_id)`.
@@ -340,15 +344,23 @@ which the server never grants.
      combination → *"Dieses Zeichen hat schon jemand. Such dir ein anderes aus!"* and back to
      the fruit step. Success → the sign shown big and read aloud: *"Das ist jetzt dein
      Geheimzeichen: Fuchs, Blau, Apfel. Merk es dir gut!"* → "Verstanden".
-3. **Topic tabs** across the top, each in its colour with icon and name; tapping a tab reads its
-   name. A topic already answered today shows ✓ and *"Das hast du heute schon gemacht.
+3. **Topic tabs** across the top, each in its colour with icon and name. Every tab, and every
+   big topic tile, has its **own 🔊 button** beside it that reads the topic's name; tapping the
+   tab or tile itself opens the topic **without speaking** (it only silences whatever is still
+   being read). A topic already answered today shows ✓ and *"Das hast du heute schon gemacht.
    Morgen wieder!"* instead of questions. Before a tab is chosen, the same topics also appear
    as big tiles in the content area.
 4. **Questions, one per screen**: progress dots, big picture (uploaded image or emoji), text in
    Andika ≥ 28 px, 🔊 replay button. With `autoRead` the question is read when it appears.
-   Answer buttons ≥ 96 px.
-   Single answers advance automatically after the spoken label; multi-choice has a "Fertig"
-   button; every question has a small "Überspringen".
+   Answer buttons ≥ 96 px. **Every answer tile (face or option) has its own 🔊** (48 px, in the
+   tile's top-left corner, a separate button — never nested in the tile) that reads its label;
+   "Fertig" and "Überspringen" have a 🔊 beside them. So a child can listen to every choice
+   before choosing. **Tapping an answer, "Fertig" or "Überspringen" speaks nothing**: it
+   silences any reading, marks the tapped tile, and a single answer advances after 0.9 s;
+   multi-choice toggles silently and has a "Fertig" button; every question has a small
+   "Überspringen".
+   (The picture-code screens of step 2 keep speaking each pick when tapped, and "Tschüss" still
+   says *"Tschüss!"*.)
 5. **Submit** after the topic's last question → *"Danke!"* animation → back to the tabs with ✓.
    All topics done → *"Alles geschafft! Tschüss!"* → start screen after 5 s.
 6. A **"Tschüss 👋"** button is always visible; **idle for `idleSeconds`** → start screen. The
@@ -357,7 +369,11 @@ which the server never grants.
    (`audioUrl`) → the Thorsten clip from `voice` → the tablet's speech synthesis (only while a
    clip is still missing or the voice service is down). Clips and synthesis share one queue:
    a new prompt either waits for the current one or interrupts it, exactly as before. The
-   "Los geht's" tap unlocks audio playback on iOS for the whole session.
+   "Los geht's" tap unlocks audio playback on iOS for the whole session. When the kiosk loads
+   its config it **fetches every clip once into memory** (blob URLs, 3 at a time, in the
+   background; clips no longer in the config are released), so a clip — and every part of a
+   composed sentence — starts without a network round trip; a clip not fetched yet plays from
+   its URL.
 
 ### Voice (Thorsten)
 - **What gets a clip:** every fixed kiosk phrase, and the name of every active topic, the text
@@ -385,6 +401,12 @@ which the server never grants.
   are deleted (row and file).
 - **Uploaded recordings win:** a question with its own `audioUrl` still gets a Thorsten clip
   (for when the recording is removed), but the kiosk plays the recording.
+- **Clip audio is trimmed:** the voice service cuts the silence Piper leaves around speech to
+  20 ms before and 50 ms after it (threshold 2 % of full scale, 5 ms fade-in/out; an
+  all-silent result is left as it is), so composed sentences have only a short, natural gap
+  between parts. The clip key carries a **clip format version** (`v2` since trimming); bumping
+  it makes every existing clip "missing", so the start-up run re-voices everything and the
+  clean-up drops the old files — no admin action needed.
 
 ### Repeat protection (the user's question: *wie verhindern, dass ein Kind ganz oft hintereinander abstimmt?*)
 - **Picture code chosen by the child.** A new child picks a free combination of animal, colour
@@ -482,6 +504,11 @@ scratch WAV, `cap_drop: ALL`, `cpus: 1.0` (one of the host's two cores stays fre
 `deploy/auto-deploy.sh` rolls both services, each with its own health gate and rollback (as
 TopRun does with app + ladder). A change under `deploy/` needs `git pull` in `/opt/wieisses`.
 
+**Clip format changes go out voice first:** push the `voice/**` change to `main` on its own
+(only `voice.yml` builds), wait until the host has rolled the new voice image, then push the
+app change that bumps the clip format version. Otherwise the app's start-up run could voice
+the new keys with the old voice image.
+
 ## Security
 
 **Untrusted input:** every request body, query and path parameter; uploaded files; cookies;
@@ -538,6 +565,12 @@ no tokens.
   (Tablets → Dieses Gerät freischalten); the old entry can be revoked.
 - Kiosk sessions live in server memory: a deploy or restart sends a child mid-topic back to the
   sign screen (their answers to that topic were not handed in yet).
+- The new sign (*"Das ist jetzt dein Geheimzeichen: Fuchs, Blau, Apfel. Merk es dir gut!"*) is
+  still spoken as five clips: each part ends with a falling tone and there are ≈ 0.2 s between
+  parts. One clip per combination would be 768 clips.
+- The Thorsten "high" voice sounds wooden to the user (2026-11-07). A Kokoro (StyleTTS2)
+  fine-tune on the Thorsten dataset (`Thorsten-Voice/Kokoro`, Apache 2.0) is being evaluated as
+  a replacement.
 
 ## Out of scope (MVP)
 

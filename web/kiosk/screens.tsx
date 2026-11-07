@@ -4,7 +4,7 @@ import { animal, colour, fruit, type CodePicks } from '../../shared/catalog.ts';
 import { PHRASE } from '../../shared/phrases.ts';
 import type { KioskTopic } from '../../shared/schema.ts';
 import { say, sayParts } from '../lib/speech.ts';
-import { Prompt } from './Prompt.tsx';
+import { Prompt, SpeakButton } from './Prompt.tsx';
 import { Picture } from './QuestionFlow.tsx';
 
 /** Speaks `text` once when the screen appears. */
@@ -92,11 +92,14 @@ export function TopicHome({ topics, done, onPick }: { topics: KioskTopic[]; done
       <Prompt id="home-title" text={text} />
       <div class="grid topics-grid">
         {topics.map((t) => (
-          <button type="button" class="tile topic-tile" style={{ background: t.color }} onClick={() => onPick(t)}>
-            <Picture imageUrl={t.imageUrl} icon={t.icon} small />
-            <span class="label">{t.name}</span>
-            {done.includes(t.id) && <span class="check" aria-label="schon erledigt">✓</span>}
-          </button>
+          <div class="tile-slot">
+            <button type="button" class="tile topic-tile" style={{ background: t.color }} onClick={() => onPick(t)}>
+              <Picture imageUrl={t.imageUrl} icon={t.icon} small />
+              <span class="label">{t.name}</span>
+              {done.includes(t.id) && <span class="check" aria-label="schon erledigt">✓</span>}
+            </button>
+            <SpeakButton text={t.name} class="speak-corner" />
+          </div>
         ))}
       </div>
     </section>

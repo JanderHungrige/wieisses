@@ -4,15 +4,17 @@ import { fixedPhrases, normaliseText } from '../../shared/phrases.ts';
 
 export const VOICE_ID = 'thorsten-high';
 export const VOICE_NAME = 'Thorsten (high)';
+/** Bumped when the voice service's audio changes (v2: trimmed silence) — every clip is re-made. */
+export const CLIP_FORMAT = 'v2';
 
 /** Piper's length scale from the kiosk's speech rate: slower speech, longer scale. */
 export function lengthScaleFor(speechRate: number): number {
   return Math.round((1 / speechRate) * 100) / 100;
 }
 
-/** sha256 of voice, speed and normalised text — a changed text or speed has no clip yet. */
+/** sha256 of voice, clip format, speed and normalised text — a changed text or speed has no clip yet. */
 export function clipKey(text: string, lengthScale: number): string {
-  return createHash('sha256').update(`${VOICE_ID}|${lengthScale.toFixed(2)}|${normaliseText(text)}`).digest('hex');
+  return createHash('sha256').update(`${VOICE_ID}|${CLIP_FORMAT}|${lengthScale.toFixed(2)}|${normaliseText(text)}`).digest('hex');
 }
 
 type Active = { active: boolean };
