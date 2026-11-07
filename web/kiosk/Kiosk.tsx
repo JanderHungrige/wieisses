@@ -5,6 +5,7 @@ import { say, unlockAudio } from '../lib/speech.ts';
 import { CodePicker } from './CodePicker.tsx';
 import { QuestionFlow } from './QuestionFlow.tsx';
 import * as S from './screens.tsx';
+import { SpeakButton } from './Prompt.tsx';
 import { RESTING, useKiosk } from './useKiosk.ts';
 
 type K = ReturnType<typeof useKiosk>;
@@ -69,17 +70,14 @@ function TopicTabs({ topics, done, activeId, onPick }: TabsProps) {
   return (
     <nav class="tabs" aria-label="Themen">
       {topics.map((t) => (
-        <button
-          type="button"
-          class={t.id === activeId ? 'tab active' : 'tab'}
-          style={{ background: t.color }}
-          aria-current={t.id === activeId ? 'page' : undefined}
-          onClick={() => onPick(t)}
-        >
-          <span class="tab-icon" aria-hidden="true">{t.icon}</span>
-          <span class="tab-name">{t.name}</span>
-          {done.includes(t.id) && <span class="tab-check" aria-label="erledigt">✓</span>}
-        </button>
+        <div class={t.id === activeId ? 'tab-slot active' : 'tab-slot'} style={{ background: t.color }}>
+          <button type="button" class="tab" aria-current={t.id === activeId ? 'page' : undefined} onClick={() => onPick(t)}>
+            <span class="tab-icon" aria-hidden="true">{t.icon}</span>
+            <span class="tab-name">{t.name}</span>
+            {done.includes(t.id) && <span class="tab-check" aria-label="erledigt">✓</span>}
+          </button>
+          <SpeakButton text={t.name} class="speak-tab" />
+        </div>
       ))}
     </nav>
   );

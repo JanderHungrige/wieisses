@@ -14,3 +14,6 @@ data/
 .mdd/audits/
 # MDD active jobs (ephemeral — deleted on completion)
 .mdd/jobs/
+
+# Python bytecode (voice/ tests run locally)
+__pycache__/

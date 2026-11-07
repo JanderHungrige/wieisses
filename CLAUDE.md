@@ -41,6 +41,12 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
 - Sentences with a variable part are spoken as fixed parts (`sayParts`), never as one string.
 - Voicing runs only on "Speichern & vertonen", "Fehlende/Alle vertonen", a changed speech rate
   and server start — never on an individual save (the user's explicit wish).
+- On the topic and question pages every child-facing button has its own 🔊 (`SpeakButton` in
+  `web/kiosk/Prompt.tsx`); tapping the button itself never speaks, it only calls `stopSpeech()`
+  (the user's explicit wish). The picture-code screens still speak each pick.
+- A change to the voice service's audio bumps `CLIP_FORMAT` in `server/domain/voice-texts.ts`
+  and rolls out voice first: push the `voice/**` commit alone, wait for the host to roll it,
+  then push the app (doc 01, Deployment).
 
 ## Deployment
 - Live: https://wieisses.w3rth.de/ — push to `main` → GHCR image → host cron rolls it
