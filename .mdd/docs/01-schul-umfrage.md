@@ -568,9 +568,15 @@ no tokens.
 - The new sign (*"Das ist jetzt dein Geheimzeichen: Fuchs, Blau, Apfel. Merk es dir gut!"*) is
   still spoken as five clips: each part ends with a falling tone and there are ≈ 0.2 s between
   parts. One clip per combination would be 768 clips.
-- The Thorsten "high" voice sounds wooden to the user (2026-11-07). A Kokoro (StyleTTS2)
-  fine-tune on the Thorsten dataset (`Thorsten-Voice/Kokoro`, Apache 2.0) is being evaluated as
-  a replacement.
+- The Thorsten "high" voice sounds wooden to the user (2026-11-07). Evaluated as a
+  replacement: `Thorsten-Voice/Kokoro` (Kokoro-82M / StyleTTS2 fine-tuned on the Thorsten
+  dataset, Apache 2.0, revision `734e593`). It uses the same espeak-ng phonemes as Piper and on
+  one CPU is about 3× faster, but through PyTorch it needs ≈ 1.2 GB RAM (out of memory in the
+  768 MB container) and a 1.7 GB image; an ONNX export (onnxruntime is already in the image)
+  would keep today's footprint — not tried yet. Its raw output is ≈ 8 dB quieter (needs peak
+  normalising) and slower (speed ≈ 1.1–1.2 matches Piper at 1.11). In that revision
+  `model.pth` is epoch 10, not epoch 5 as its README says.
+- Both voices stress *„Worüber“* on the first syllable (espeak-ng's dictionary).
 
 ## Out of scope (MVP)
 
