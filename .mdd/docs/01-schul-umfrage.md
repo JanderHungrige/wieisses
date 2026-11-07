@@ -159,7 +159,7 @@ test_files:
   - voice/test_kokoro_voice.py
 data_flow: greenfield
 last_synced: 2026-11-07
-status: in_progress
+status: complete
 phase: all
 mdd_version: 11
 tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, kokoro, onnx, read-aloud-buttons, admin-panel, sqlite]
@@ -613,7 +613,10 @@ no tokens.
   the shared `/tmp/docker-image-deploy.lock` and prunes only layers older than 24 h; the other
   projects still prune without it, so a big image can hit this again.
 - Kokoro on the Mac's Docker took ≈ 6 s per short sentence on one CPU (Piper there was just as
-  slow, while it took 0.3–2 s on the host); the host's time per text is measured at rollout.
+  slow, while it took 0.3–2 s on the host). On the host (2026-11-07 rollout) Kokoro took
+  0.7–4.5 s per text, median 2.3 s (Piper: 0.3–2 s); the first ≈ 6 s more for loading the
+  model. All 109 texts were re-voiced in 4.5 min, no failures, and the 109 Piper clips pruned;
+  the voice container peaked at 548 MiB.
 
 ## Out of scope (MVP)
 
