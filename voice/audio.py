@@ -1,6 +1,6 @@
-"""Trimming the silence Piper leaves around speech (doc 01, "Clip audio is trimmed").
+"""Trimming the silence the voice model leaves around speech (doc 01, "Clip audio is trimmed").
 
-Piper starts and ends every clip with 0.2-0.3 s of silence. Spoken one after another (a composed
+The model starts and ends every clip with 0.2-0.3 s of silence. Spoken one after another (a composed
 sentence, a question and its answer), those add up to audible gaps, so they are cut short.
 """
 
