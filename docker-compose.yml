@@ -40,8 +40,9 @@ services:
     init: true
     restart: unless-stopped
     read_only: true
+    # exec: phonemizer copies espeak-ng's shared library to /tmp and loads it from there.
     tmpfs:
-      - /tmp:size=16m,mode=1777
+      - /tmp:size=16m,mode=1777,exec
     cap_drop:
       - ALL
     security_opt:

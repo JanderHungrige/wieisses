@@ -46,18 +46,20 @@ services:
       retries: 3
       start_period: 10s
 
-  # Thorsten-Voice (Piper). No published port: only the app above reaches it, as voice:5000.
+  # Thorsten-Voice (Kokoro). No published port: only the app above reaches it, as voice:5000.
   # It holds the model (~400 MB) only while voicing and releases it after two idle minutes.
   voice:
     image: ${REGISTRY:-ghcr.io}/${OWNER:-janderhungrige}/${VOICE_IMAGE:-wieisses-voice}:${IMAGE_TAG}
     restart: unless-stopped
     init: true
     read_only: true
+    # exec: phonemizer copies espeak-ng's shared library to /tmp and loads it from there.
     tmpfs:
-      - /tmp:size=16m,mode=1777
+      - /tmp:size=16m,mode=1777,exec
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    # Measured peak 555 MiB (71 texts up to 400 characters); ≈ 30 MB once the model is released.
     mem_limit: 768m
     pids_limit: 64
     # One of the host's two cores at most, and a low weight: the other projects come first.
