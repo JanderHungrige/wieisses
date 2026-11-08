@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { CodePicks } from '../../shared/catalog.ts';
 import type { AnswerInput, KioskConfig, KioskSession, KioskTopic } from '../../shared/schema.ts';
+import { PHRASE } from '../../shared/phrases.ts';
 import { ApiError, api } from '../lib/api.ts';
-import { initSpeech, stopSpeech } from '../lib/speech.ts';
+import { newBuildServed } from '../lib/app-version.ts';
+import { initSpeech, say, stopSpeech, whenQuiet } from '../lib/speech.ts';
 import { useIdle } from './useIdle.ts';
 
 export type Phase =
@@ -51,10 +53,21 @@ export function useKiosk() {
     }
   }
 
+  /** Start screen for the next child — reloading first if a new build was deployed (step 8). */
+  async function restart(): Promise<void> {
+    setSession(null);
+    setPhase({ name: 'loading' });
+    if (await newBuildServed(document.head.outerHTML)) {
+      await whenQuiet(); // a goodbye still being spoken is finished first
+      window.location.reload();
+      return;
+    }
+    await load(); // fresh questions and today's date for the next child
+  }
+
   function reset(): void {
     stopSpeech();
-    setSession(null);
-    void load(); // fresh questions and today's date for the next child
+    void restart();
   }
 
   useEffect(() => void load(), []);
@@ -68,6 +81,11 @@ export function useKiosk() {
     setPhase,
     load,
     reset,
+    // "Tschüss" says "Tschüss!" to the end while the start screen comes (doc 01, step 6).
+    bye: () => {
+      say(PHRASE.bye, true);
+      void restart();
+    },
     enterCode: (mode: 'new' | 'returning', picks: CodePicks, grade: number | null) => enterCode(ctx, mode, picks, grade),
     submit: (topic: KioskTopic, answers: AnswerInput[]) => submit(ctx, topic, answers),
     // Opening a topic speaks nothing; its 🔊 reads the name (doc 01, step 3).

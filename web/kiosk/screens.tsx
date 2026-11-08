@@ -111,7 +111,7 @@ export function AlreadyDone({ topic }: { topic: KioskTopic }) {
   return (
     <section class="center" aria-labelledby="done-title">
       <p class="hello" aria-hidden="true">✅</p>
-      <h1 id="done-title" class="prompt">Das hast du heute schon gemacht.</h1>
+      <Prompt id="done-title" text="Das hast du heute schon gemacht." onSpeak={() => say(PHRASE.alreadyDone, true)} />
       <p class="hint">{topic.name}: Morgen wieder!</p>
     </section>
   );

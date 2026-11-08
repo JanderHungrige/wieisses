@@ -64,6 +64,7 @@ source_files:
   - web/lib/api.ts
   - web/lib/speech.ts
   - web/lib/clip-cache.ts
+  - web/lib/app-version.ts
   - web/index.html
   - web/kiosk/main.tsx
   - web/kiosk/Kiosk.tsx
@@ -155,14 +156,15 @@ test_files:
   - tests/api/voice.test.ts
   - tests/api/fake-voice.ts
   - tests/unit/clip-cache.test.ts
+  - tests/unit/app-version.test.ts
   - voice/test_audio.py
   - voice/test_kokoro_voice.py
 data_flow: greenfield
-last_synced: 2026-11-07
+last_synced: 2026-11-08
 status: complete
 phase: all
 mdd_version: 11
-tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, kokoro, onnx, read-aloud-buttons, admin-panel, sqlite]
+tags: [survey, kiosk, tablet, primary-school, accessibility, speech-synthesis, thorsten-voice, kokoro, onnx, read-aloud-buttons, auto-reload, admin-panel, sqlite]
 path: Umfrage
 integration_contracts: []
 satisfies_contracts: []
@@ -354,7 +356,7 @@ which the server never grants.
    big topic tile, has its **own 🔊 button** beside it that reads the topic's name; tapping the
    tab or tile itself opens the topic **without speaking** (it only silences whatever is still
    being read). A topic already answered today shows ✓ and *"Das hast du heute schon gemacht.
-   Morgen wieder!"* instead of questions. Before a tab is chosen, the same topics also appear
+   Morgen wieder!"* instead of questions, with a 🔊 beside the sentence that reads it again. Before a tab is chosen, the same topics also appear
    as big tiles in the content area.
 4. **Questions, one per screen**: progress dots, big picture (uploaded image or emoji), text in
    Andika ≥ 28 px, 🔊 replay button. With `autoRead` the question is read when it appears.
@@ -365,12 +367,15 @@ which the server never grants.
    silences any reading, marks the tapped tile, and a single answer advances after 0.9 s;
    multi-choice toggles silently and has a "Fertig" button; every question has a small
    "Überspringen".
-   (The picture-code screens of step 2 keep speaking each pick when tapped, and "Tschüss" still
-   says *"Tschüss!"*.)
+   (The picture-code screens of step 2 keep speaking each pick when tapped.) From the topic page
+   on, **every button has a 🔊** — a child who cannot read yet can have everything read aloud.
 5. **Submit** after the topic's last question → *"Danke!"* animation → back to the tabs with ✓.
    All topics done → *"Alles geschafft! Tschüss!"* → start screen after 5 s.
-6. A **"Tschüss 👋"** button is always visible; **idle for `idleSeconds`** → start screen. The
-   kiosk session token lives only in memory, so nothing of the previous child survives either.
+6. A **"Tschüss 👋"** button is always visible, with a 🔊 beside it that reads *"Tschüss!"*.
+   Tapping "Tschüss" itself also says *"Tschüss!"* as a goodbye — **to the end**: the start
+   screen comes while it is spoken, nothing cuts it off. **Idle for `idleSeconds`** → start
+   screen (silently, anything still being read stops). The kiosk session token lives only in
+   memory, so nothing of the previous child survives either.
 7. **Which voice speaks** any text, in this order: the question's own uploaded recording
    (`audioUrl`) → the Thorsten clip from `voice` → the tablet's speech synthesis (only while a
    clip is still missing or the voice service is down). Clips and synthesis share one queue:
@@ -380,6 +385,14 @@ which the server never grants.
    background; clips no longer in the config are released), so a clip — and every part of a
    composed sentence — starts without a network round trip; a clip not fetched yet plays from
    its URL.
+8. **A new version arrives between two children.** A tablet keeps running the code it loaded,
+   so whenever the kiosk goes back to the start screen (after "Tschüss", idle, or "Alles
+   geschafft") it first fetches `/` again and compares the built files it references
+   (`/assets/…` in the page) with its own. Different → it waits until a goodbye still being
+   spoken has finished (at most 4 s) and reloads itself; the device cookie keeps it registered.
+   It never reloads during a child's session, and not when the check fails or the answer lists
+   no built files (server down, an error page, the Vite dev server) — then it simply carries
+   on with the code it has. Pure comparison in `web/lib/app-version.ts`.
 
 ### Voice (Thorsten)
 - **What gets a clip:** every fixed kiosk phrase, and the name of every active topic, the text
@@ -521,6 +534,8 @@ loads it from the copy. Memory (measured 2026-11-07, 71 texts up to 400 characte
 model is released. That needs onnxruntime's memory arena off and glibc returning large buffers
 (`MALLOC_MMAP_THRESHOLD_`/`MALLOC_TRIM_THRESHOLD_` in the image); with the default arena the
 service kept every text's working memory and grew past 760 MiB in three texts.
+Tablets need no manual reload after a deploy: each picks up the new build the next time a
+child finishes (see the child's flow, step 8).
 `deploy/auto-deploy.sh` rolls both services, each with its own health gate and rollback (as
 TopRun does with app + ladder). A change under `deploy/` needs `git pull` in `/opt/wieisses`.
 

@@ -41,9 +41,10 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
 - Sentences with a variable part are spoken as fixed parts (`sayParts`), never as one string.
 - Voicing runs only on "Speichern & vertonen", "Fehlende/Alle vertonen", a changed speech rate
   and server start — never on an individual save (the user's explicit wish).
-- On the topic and question pages every child-facing button has its own 🔊 (`SpeakButton` in
+- From the topic page on, every child-facing button has its own 🔊 (`SpeakButton` in
   `web/kiosk/Prompt.tsx`); tapping the button itself never speaks, it only calls `stopSpeech()`
-  (the user's explicit wish). The picture-code screens still speak each pick.
+  (the user's explicit wish). Exceptions: the picture-code screens still speak each pick, and
+  "Tschüss" says "Tschüss!" — never cut off by the restart that follows.
 - The voice is Thorsten-Voice/Kokoro, exported to ONNX in the image's build stage
   (`voice/export.py`). PyTorch never goes into the runtime stage, and onnxruntime's memory
   arena stays off (with the `MALLOC_*` env in `voice/Dockerfile`) — with the arena the service
@@ -53,6 +54,8 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
   then push the app (doc 01, Deployment).
 
 ## Deployment
+- Tablets pick up a new build by reloading themselves between two children (`restart` in
+  `web/kiosk/useKiosk.ts`, `web/lib/app-version.ts`). Never reload during a child's session.
 - Live: https://wieisses.w3rth.de/ — push to `main` → GHCR image → host cron rolls it
   (`deploy/SERVER-SETUP.md`). Port bound to `172.17.0.1:8082` only (Nginx Proxy Manager in front).
 - Verify the image locally before relying on CI: `docker build` and a run against a fresh empty volume.
