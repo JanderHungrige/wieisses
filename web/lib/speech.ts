@@ -119,6 +119,18 @@ export function stopSpeech(): void {
   }
 }
 
+/** Resolves once nothing is being said or waiting — or after `maxMs`, whichever comes first. */
+export function whenQuiet(maxMs = 4000): Promise<void> {
+  const until = Date.now() + maxMs;
+  return new Promise((resolve) => {
+    const check = () => {
+      if ((!busy && queue.length === 0) || Date.now() >= until) resolve();
+      else window.setTimeout(check, 100);
+    };
+    check();
+  });
+}
+
 /** Speaks the parts one after another. `interrupt` cuts off what is being said. */
 export function sayParts(texts: readonly string[], interrupt = false): void {
   if (interrupt) stopSpeech();

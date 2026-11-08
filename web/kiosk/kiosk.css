@@ -74,7 +74,7 @@ a.primary {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  padding: 0.5rem 1rem 0;
+  padding: 0.5rem 0.5rem 0;
   padding-top: max(0.5rem, env(safe-area-inset-top));
   background: rgb(255 255 255 / 0.75);
   backdrop-filter: blur(6px);
@@ -152,14 +152,24 @@ a.primary {
   font-size: 0.85rem;
 }
 
-.bye {
+/* "Tschüss" and its 🔊 share one pill, as a tab and its 🔊 share the tab: two buttons side by side. */
+.bye-slot {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
   margin-bottom: 0.45rem;
-  min-height: 52px;
-  padding: 0.4rem 0.8rem;
   border: 2px solid rgb(29 36 51 / 0.2);
   border-radius: 999px;
   background: var(--card);
+}
+
+.bye {
+  min-height: 52px;
+  padding: 0.4rem 0.3rem 0.4rem 0.8rem;
+  border: 0;
+  border-radius: 999px 0 0 999px;
+  background: transparent;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
@@ -247,7 +257,16 @@ a.primary {
 .speak-tab {
   width: 40px;
   height: 40px;
-  margin-right: 0.4rem;
+  margin-right: 0.3rem;
+  font-size: 1.1rem;
+}
+
+/* On the white "Tschüss" pill the 🔊 takes the paper colour, so its circle still shows. */
+.speak-bye {
+  width: 40px;
+  height: 40px;
+  margin-right: 5px;
+  background: var(--paper);
   font-size: 1.1rem;
 }
 

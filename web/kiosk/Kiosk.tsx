@@ -1,7 +1,7 @@
 // The kiosk page: header with the coloured topic tabs and "Tschüss", and the current screen.
 import type { KioskTopic } from '../../shared/schema.ts';
 import { PHRASE } from '../../shared/phrases.ts';
-import { say, unlockAudio } from '../lib/speech.ts';
+import { unlockAudio } from '../lib/speech.ts';
 import { CodePicker } from './CodePicker.tsx';
 import { QuestionFlow } from './QuestionFlow.tsx';
 import * as S from './screens.tsx';
@@ -26,7 +26,10 @@ export function Kiosk() {
           <span class="bar-title">{phase.name === 'start' ? '' : (config?.title ?? 'Wie isses?')}</span>
         )}
         {!RESTING.has(phase.name) && (
-          <button type="button" class="bye" onClick={() => (say(PHRASE.bye, true), k.reset())}>Tschüss 👋</button>
+          <span class="bye-slot">
+            <button type="button" class="bye" onClick={k.bye}>Tschüss 👋</button>
+            <SpeakButton text={PHRASE.bye} class="speak-bye" />
+          </span>
         )}
       </header>
       <main class="stage">
