@@ -3,7 +3,7 @@ id: 02-springy-naturlook
 title: Springy und Naturlook — the logo as a guiding character, a comic nature background, sketch buttons, Playpen Sans
 edition: wieisses
 depends_on: [01-schul-umfrage]
-relates: [01-schul-umfrage]
+relates: [01-schul-umfrage, 03-installierbare-app]
 source_files:
   - web/lib/springy.ts
   - web/kiosk/Springy.tsx

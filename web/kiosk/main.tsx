@@ -11,3 +11,9 @@ import { Kiosk } from './Kiosk.tsx';
 
 const root = document.getElementById('app');
 if (root) render(<Kiosk />, root);
+
+// The installable app's service worker (doc 03): only answers failed page loads with the offline
+// page. Production only, so the dev server never sits behind it; the kiosk works without it.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+}
