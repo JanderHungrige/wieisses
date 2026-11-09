@@ -172,6 +172,13 @@ the German reading (no word to attach the s to).
   `pointer-events: none`): three clouds drifting across the sky at different speeds (70–140 s), a
   sun in the top-right corner whose rays turn slowly (60 s per turn), two butterflies fluttering
   on long loops (wings 0.35 s, path 18–26 s). Reduced motion → everything still.
+- **The sun is the admin gate** (the user's wish, 2026-11-09): one tap on the sun opens `/admin/`,
+  which still asks for the password — a child's stray tap only ends on the login page. The sun
+  itself stays decoration in the meadow; over it lies an invisible round link `.sun-gate`
+  (`aria-label` "Admin-Bereich", no 🔊: it is for adults) in the kiosk layer, *under* the screens'
+  panels: `.stage` lets taps through (`pointer-events: none`) and only its screens take them. So a
+  tap counts only where the sun is visible — a panel lying over the sun keeps its own taps. Sun and
+  gate share their position (`--sun-top`, `--sun-right`, `--sun-size`), so they stay aligned.
 - **Readability:** the screens sit on a **paper panel** (paper at 92 %, ink outline, sketch edge);
   the active topic's colour now tints that panel (`color-mix(var(--topic) 26%, paper)`) instead of
   the whole page. Ink text on the panel stays ≥ 4.5 : 1.
@@ -207,7 +214,8 @@ single-storey a and g as taught at school, and l / I / 1 easy to tell apart. Fou
 and "Tschüss" must still fit one row at 1024 px.
 
 ## Business Rules
-1. Springy is decoration: `aria-hidden`, no tap target, never covers or blocks a button.
+1. Springy is decoration: `aria-hidden`, no tap target, never covers or blocks a button. The
+   meadow is decoration too, except the sun, which is the admin gate (never over a panel).
 2. Springy's mouth moves only while the shared speech queue speaks; Springy never starts speech.
 3. Tapping a 🔊 still only reads aloud (doc 01) — it now also makes Springy look at it.
 4. One Springy on screen at a time; none on the adult screens.

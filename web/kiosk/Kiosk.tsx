@@ -41,6 +41,7 @@ export function Kiosk() {
         <main class="stage">
           <Screen k={k} active={active} />
         </main>
+        <a class="sun-gate" href="/admin/" aria-label="Admin-Bereich" />
       </div>
     </SpringyMood.Provider>
   );
