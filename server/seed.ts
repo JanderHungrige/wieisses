@@ -35,6 +35,7 @@ const STARTER: readonly SeedTopic[] = [
     questions: [
       { kind: 'scale5', icon: '🍝', text: 'Wie hat dir das Essen heute geschmeckt?' },
       { kind: 'yesno', icon: '😋', text: 'Bist du satt geworden?' },
+      { kind: 'yesno', icon: '⏰', text: 'Hattest du genug Zeit zum Essen?' },
       {
         kind: 'choice',
         multi: true,
@@ -43,7 +44,6 @@ const STARTER: readonly SeedTopic[] = [
         text: 'Was isst du am liebsten?',
         options: [['🍝', 'Nudeln'], ['🍕', 'Pizza'], ['🍚', 'Reis'], ['🥔', 'Kartoffeln'], ['🥦', 'Gemüse'], ['🍎', 'Obst'], ['🐟', 'Fisch'], ['🍲', 'Suppe']],
       },
-      { kind: 'yesno', extended: true, icon: '⏰', text: 'Hattest du genug Zeit zum Essen?' },
       {
         kind: 'choice',
         extended: true,
@@ -58,7 +58,7 @@ const STARTER: readonly SeedTopic[] = [
     icon: '📚',
     color: '#5aa9e6',
     questions: [
-      { kind: 'scale5', icon: '✏️', text: 'Wie gut konntest du heute deine Hausaufgaben machen?' },
+      { kind: 'scale5', icon: '✏️', text: 'Wie gut konntest du heute in der Mittagsinsel deine Hausaufgaben machen?' },
       {
         kind: 'choice',
         icon: '🙋',
@@ -74,11 +74,11 @@ const STARTER: readonly SeedTopic[] = [
     icon: '🤝',
     color: '#4cc38a',
     questions: [
-      { kind: 'scale5', icon: '💛', text: 'Hast du dich heute wohlgefühlt?' },
-      { kind: 'scale5', icon: '👂', text: 'Haben dir die Erwachsenen heute zugehört?' },
+      { kind: 'scale5', icon: '💛', text: 'Hast du dich heute in der Mittagsinsel wohlgefühlt?' },
+      { kind: 'scale5', icon: '👂', text: 'Haben dir die Erwachsenen heute in der Mittagsinsel zugehört?' },
       { kind: 'yesno', extended: true, icon: '🤗', text: 'Kannst du zu einem Erwachsenen gehen, wenn du traurig bist?' },
       { kind: 'scale3', extended: true, icon: '⚖️', text: 'Werden Streits bei uns fair gelöst?' },
-      { kind: 'yesno', extended: true, icon: '⭐', text: 'Hat dich heute jemand gelobt?' },
+      { kind: 'yesno', extended: true, icon: '⭐', text: 'Hat dich heute in der Mittagsinsel jemand gelobt?' },
     ],
   },
   {
@@ -86,8 +86,14 @@ const STARTER: readonly SeedTopic[] = [
     icon: '🎨',
     color: '#b388eb',
     questions: [
-      { kind: 'scale5', icon: '🎈', text: 'Wie hat dir heute gefallen, was du gemacht hast?' },
-      { kind: 'choice', multi: true, icon: '🧩', text: 'Was hast du heute gemacht?', options: ACTIVITIES },
+      { kind: 'scale5', icon: '🎈', text: 'Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?' },
+      {
+        kind: 'choice',
+        icon: '🌤️',
+        text: 'Warst du heute in der Mittagsinsel mehr draußen, drinnen oder etwa gleich?',
+        options: [['🌳', 'Draußen'], ['🏠', 'Drinnen'], ['⚖️', 'Etwa gleich']],
+      },
+      { kind: 'choice', multi: true, extended: true, icon: '🧩', text: 'Was hast du heute in der Mittagsinsel gemacht?', options: ACTIVITIES },
       {
         kind: 'choice',
         multi: true,
@@ -97,6 +103,13 @@ const STARTER: readonly SeedTopic[] = [
         options: [...ACTIVITIES, ['🧁', 'Kochen und Backen'], ['🏃', 'Sport'], ['🎭', 'Theater'], ['🚌', 'Ausflüge']],
       },
       { kind: 'scale3', extended: true, icon: '🧸', text: 'Gibt es genug Spielsachen und Material?' },
+      {
+        kind: 'choice',
+        extended: true,
+        icon: '🤔',
+        text: 'Spielst du lieber drinnen oder draußen?',
+        options: [['🏠', 'Drinnen'], ['🌳', 'Draußen']],
+      },
     ],
   },
 ];

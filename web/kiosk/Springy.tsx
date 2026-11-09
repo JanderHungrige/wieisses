@@ -1,11 +1,11 @@
 // Springy — the logo with a face, guiding the children (doc 02). An SVG rig: the logo's swirl as
 // the body, googly eyes on its top arc, brows, a mouth. CSS does the motion (springy.css); this
-// file only switches states: the mood from the kiosk phase, talking while the speech queue
-// speaks, and the pupils turned towards a tapped 🔊.
+// file only switches states: the mood from the kiosk phase, the greeting move on the start screen,
+// talking while the speech queue speaks, and the pupils turned towards a tapped 🔊.
 import { createContext } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { isSpeaking, onSpeaking } from '../lib/speech.ts';
-import { onLook, pupilOffset, type Mood, type Point } from '../lib/springy.ts';
+import { nextMove, onLook, pupilOffset, type Mood, type Move, type Point } from '../lib/springy.ts';
 import { BODY } from './springy-body.ts';
 
 /** The mood of the screen being shown; Kiosk.tsx provides it from `springyMood(phase)`. */
@@ -20,6 +20,15 @@ function useTalking(): boolean {
   const [talking, setTalking] = useState(isSpeaking());
   useEffect(() => onSpeaking(setTalking), []);
   return talking;
+}
+
+/** The start screen's move, and the handler that picks the next one when the spring's ends. */
+function useGreeting(active: boolean): [Move | undefined, (e: AnimationEvent) => void] {
+  const [move, setMove] = useState<Move>(() => nextMove(undefined));
+  const next = (e: AnimationEvent) => {
+    if (e.target === e.currentTarget) setMove((played) => nextMove(played));
+  };
+  return [active ? move : undefined, next];
 }
 
 /** The pupils' offset in SVG units: towards the last tapped 🔊, back to the middle after a while. */
@@ -50,16 +59,18 @@ export function Springy({ size }: { size: 'small' | 'big' }) {
   const talking = useTalking();
   const firstEye = useRef<SVGCircleElement>(null);
   const look = useLook(firstEye);
+  const [move, nextGreeting] = useGreeting(mood === 'hello');
   if (mood === 'hidden') return null;
   return (
     <svg
       class={`springy springy-${size} mood-${mood}`}
       data-talking={talking ? '' : undefined}
+      data-move={move}
       viewBox="-8 -54 309 312"
       aria-hidden="true"
       focusable="false"
     >
-      <g class="springy-spring">
+      <g class="springy-spring" onAnimationEnd={nextGreeting}>
         <path class="springy-body" d={BODY} />
         <g class="springy-brows">
           <path d="M98 -30 Q122 -46 146 -32" />
@@ -70,8 +81,10 @@ export function Springy({ size }: { size: 'small' | 'big' }) {
             <g class="springy-eye">
               <circle ref={i === 0 ? firstEye : undefined} cx={e.x} cy={e.y} r={EYE_R} class="springy-white" />
               <g class="springy-pupil" style={{ transform: `translate(${look.x}px, ${look.y}px)` }}>
-                <circle cx={e.x} cy={e.y + 2} r="13" />
-                <circle cx={e.x - 5} cy={e.y - 3} r="5" class="springy-shine" />
+                <g class="springy-glance">
+                  <circle cx={e.x} cy={e.y + 2} r="13" />
+                  <circle cx={e.x - 5} cy={e.y - 3} r="5" class="springy-shine" />
+                </g>
               </g>
             </g>
           ))}

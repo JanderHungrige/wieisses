@@ -1,0 +1,142 @@
+/* Springy's greeting moves on the start screen (doc 02, "Greeting moves"). Springy.tsx sets
+   data-move to one of nine, each played once and ending in a short rest; the spring's animationend
+   picks the next at random. This file says which parts play what; the spring's own keyframes are in
+   springy-moves-spring.css. Moves animate the spring, the pupils' inner group (springy-glance), the
+   brows or the happy eyes — never the mouth, which belongs to talking. Only transform and opacity
+   move; reduced motion stills all of it. */
+
+.mood-hello[data-move='hop'] .springy-spring {
+  animation: springy-move-hop 2.6s ease-in-out;
+}
+
+.mood-hello[data-move='bounce'] .springy-spring {
+  animation: springy-move-bounce 2.4s ease-in-out;
+}
+
+.mood-hello[data-move='spin'] .springy-spring {
+  animation: springy-move-spin 2.6s ease-in-out;
+}
+
+.mood-hello[data-move='wiggle'] .springy-spring {
+  animation: springy-move-wiggle 2.4s ease-in-out;
+}
+
+.mood-hello[data-move='wiggle'] .springy-brows {
+  animation: springy-brows-up 2.4s ease-in-out;
+}
+
+.mood-hello[data-move='stretch'] .springy-spring {
+  animation: springy-move-stretch 3s ease-in-out;
+}
+
+.mood-hello[data-move='stretch'] .springy-brows {
+  animation: springy-brows-high 3s ease-in-out;
+}
+
+.mood-hello[data-move='look'] .springy-spring {
+  animation: springy-move-lean 3s ease-in-out;
+}
+
+.mood-hello[data-move='look'] .springy-glance {
+  animation: springy-move-glance 3s ease-in-out;
+}
+
+.mood-hello[data-move='giggle'] .springy-spring {
+  animation: springy-move-giggle 2.6s ease-in-out;
+}
+
+.mood-hello[data-move='giggle'] .springy-happy {
+  animation: springy-show 2.6s ease-in-out;
+}
+
+.mood-hello[data-move='giggle'] .springy-glance {
+  animation: springy-hide 2.6s ease-in-out;
+}
+
+.mood-hello[data-move='giggle'] .springy-brows {
+  animation: springy-brows-up 2.6s ease-in-out;
+}
+
+.mood-hello[data-move='dance'] .springy-spring {
+  animation: springy-move-dance 3.2s ease-in-out;
+}
+
+.mood-hello[data-move='peek'] .springy-spring {
+  animation: springy-move-peek 2.6s ease-in-out;
+}
+
+.mood-hello[data-move='peek'] .springy-brows {
+  animation: springy-brows-pop 2.6s ease-in-out;
+}
+
+@keyframes springy-brows-up {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  8%,
+  60% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes springy-brows-high {
+  0%,
+  56%,
+  100% {
+    transform: none;
+  }
+  18%,
+  46% {
+    transform: translateY(-11px);
+  }
+}
+
+@keyframes springy-brows-pop {
+  0%,
+  74%,
+  100% {
+    transform: none;
+  }
+  18%,
+  34% {
+    transform: translateY(4px);
+  }
+  46%,
+  60% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes springy-show {
+  0%,
+  72%,
+  100% {
+    opacity: 0;
+  }
+  6%,
+  64% {
+    opacity: 1;
+  }
+}
+
+@keyframes springy-hide {
+  0%,
+  72%,
+  100% {
+    opacity: 1;
+  }
+  6%,
+  64% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .springy-glance,
+  .springy-brows,
+  .springy-happy {
+    animation: none !important;
+  }
+}

@@ -90,10 +90,6 @@
   animation: springy-boing 3.8s ease-in-out infinite;
 }
 
-.mood-hello .springy-spring {
-  animation: springy-hello 1.8s ease-in-out infinite;
-}
-
 .mood-cheer .springy-spring {
   animation: springy-jump 1s cubic-bezier(0.3, 0.6, 0.4, 1) infinite;
 }
@@ -151,25 +147,6 @@
   }
   94% {
     transform: scale(0.99, 1.01);
-  }
-}
-
-@keyframes springy-hello {
-  0%,
-  100% {
-    transform: none;
-  }
-  20% {
-    transform: translateY(-10%) rotate(-7deg) scale(0.97, 1.04);
-  }
-  40% {
-    transform: scale(1.05, 0.93);
-  }
-  60% {
-    transform: translateY(-6%) rotate(6deg);
-  }
-  80% {
-    transform: scale(1.03, 0.96);
   }
 }
 
