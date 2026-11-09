@@ -27,6 +27,17 @@ export function springyMood(phase: PhaseName): Mood {
   }
 }
 
+/** The start screen's greeting moves (doc 02, "Greeting moves"); each is a CSS animation. */
+export const GREETING_MOVES = ['hop', 'bounce', 'spin', 'wiggle', 'stretch', 'look', 'giggle', 'dance', 'peek'] as const;
+export type Move = (typeof GREETING_MOVES)[number];
+
+/** The next greeting move: any of the nine at random, but never the one just played. */
+export function nextMove(previous: Move | undefined, random: () => number = Math.random): Move {
+  const choices = GREETING_MOVES.filter((move) => move !== previous);
+  const at = Math.min(choices.length - 1, Math.floor(random() * choices.length));
+  return choices[at] ?? GREETING_MOVES[0];
+}
+
 /** How far the pupils move from `eye` towards `target`: the way there, at most `max` long. */
 export function pupilOffset(eye: Point, target: Point, max: number): Point {
   const dx = target.x - eye.x;

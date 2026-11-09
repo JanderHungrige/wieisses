@@ -7,6 +7,8 @@ relates: [01-schul-umfrage]
 source_files:
   - web/lib/springy.ts
   - web/kiosk/Springy.tsx
+  - web/kiosk/springy-moves.css
+  - web/kiosk/springy-moves-spring.css
   - web/kiosk/springy-body.ts
   - web/kiosk/springy.css
   - web/kiosk/speak.css
@@ -70,7 +72,7 @@ web/kiosk/Kiosk.tsx ──► <Nature/> (fixed backdrop + animated SVG layers, a
         └─► <main class="stage"> ───┴─ screens; every Prompt = <Springy size="small"/> + speech bubble
                                         start / thanks = <Springy size="big"/>
 web/kiosk/Springy.tsx   the SVG rig (body path, eyes, pupils, lids, brows, mouth) — CSS does the motion
-web/lib/springy.ts      pure: springyMood(phase), pupilOffset(eye, target, max), lookAt/onLook store
+web/lib/springy.ts      pure: springyMood(phase), nextMove(previous, random), pupilOffset(eye, target, max), lookAt/onLook store
 web/lib/speech.ts       + onSpeaking(listener): fires when the shared speech queue starts/stops
 server/domain/voice-texts.ts + spokenText(text): the form the voice service is given
 ```
@@ -93,13 +95,36 @@ No route, table or API shape changes. All assets are bundled by Vite (no request
 ### Moods — `springyMood(phase)` (pure)
 | Kiosk phase | Mood | What Springy does |
 |---|---|---|
-| `start` | `hello` | big, hops and tilts as a greeting; bubble "Hallo, ich bin Springy!" (shown, not spoken: audio is locked until "Los geht's") |
+| `start` | `hello` | big, plays one greeting move after another, picked at random (see "Greeting moves"); bubble "Hallo, ich bin Springy!" (shown, not spoken: audio is locked until "Los geht's") |
 | `ask`, `pick`, `unknown`, `welcome`, `topics` | `idle` | small, beside each prompt; springs (squash & stretch) every few seconds |
 | `thanks` | `cheer` | big, jumps twice with happy (^ ^) eyes and raised brows |
 | `loading`, `unregistered`, `offline` | `hidden` | not shown (adult screens) |
 
 On every mood: **blinks** about every 4.5 s; **talks** — the mouth opens and closes every 0.16 s —
 exactly while the shared speech queue is speaking (`onSpeaking`), whoever started it.
+
+### Greeting moves — `nextMove(previous, random)` (pure)
+On the start screen Springy does not loop one animation: it plays one of nine moves once — the
+original hop and eight new ones — then `nextMove` picks the next one at random, any of the nine but
+the one just played, so no move comes twice in a row. Each move is a CSS animation (`web/kiosk/springy-moves.css` says which
+parts play what, `web/kiosk/springy-moves-spring.css` holds the spring's keyframes; chosen by
+`data-move` on the SVG) that ends in a short rest; the spring's `animationend` triggers the next.
+
+| Move | What Springy does |
+|---|---|
+| `hop` | hops and tilts left and right — the original greeting |
+| `bounce` | three quick bounces, each smaller than the last |
+| `spin` | jumps and turns once around its middle in the air |
+| `wiggle` | wiggles side to side, brows up |
+| `stretch` | stretches tall like waking up, brows high, then settles with a squash |
+| `look` | leans and looks left, then right, then back (pupils and body) |
+| `giggle` | happy (^ ^) eyes and little shakes, as if laughing |
+| `dance` | sways left and right in rhythm, hopping on each beat |
+| `peek` | ducks down low, brows low, then pops up surprised with brows high |
+
+Every move animates only `transform`/`opacity` of the spring, the pupils' inner group
+(`springy-glance`, so the 🔊 look stays separate), the brows or the happy eyes — never the mouth,
+which belongs to talking. Reduced motion: no move plays and Springy stands still.
 
 ### Looking — `pupilOffset(eye, target, max)` (pure)
 A tapped 🔊 (`SpeakButton` or the prompt's 🔊) reports its centre with `lookAt(point)`. Springy turns

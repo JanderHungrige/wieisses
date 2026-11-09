@@ -1,0 +1,235 @@
+/* The spring's keyframes for Springy's greeting moves (doc 02, "Greeting moves"); which move plays
+   them is in springy-moves.css. Each ends in a short rest. Only transform moves. */
+
+/* Hops and tilts left and right — the original greeting, once. */
+@keyframes springy-move-hop {
+  0%,
+  72%,
+  100% {
+    transform: none;
+  }
+  14% {
+    transform: translateY(-10%) rotate(-7deg) scale(0.97, 1.04);
+  }
+  29% {
+    transform: scale(1.05, 0.93);
+  }
+  43% {
+    transform: translateY(-6%) rotate(6deg);
+  }
+  58% {
+    transform: scale(1.03, 0.96);
+  }
+}
+
+/* Three bounces, each smaller than the last. */
+@keyframes springy-move-bounce {
+  0%,
+  74%,
+  100% {
+    transform: none;
+  }
+  8% {
+    transform: scale(1.08, 0.88);
+  }
+  19% {
+    transform: translateY(-16%) scale(0.95, 1.06);
+  }
+  30% {
+    transform: scale(1.07, 0.9);
+  }
+  40% {
+    transform: translateY(-10%) scale(0.97, 1.04);
+  }
+  50% {
+    transform: scale(1.05, 0.93);
+  }
+  58% {
+    transform: translateY(-5%);
+  }
+  66% {
+    transform: scale(1.02, 0.97);
+  }
+}
+
+/* A jump with one turn around its middle: the two inner translates move the pivot from the
+   bottom (the spring's origin) to the centre; every frame keeps the same function list. */
+@keyframes springy-move-spin {
+  0% {
+    transform: translateY(0%) translateY(-50%) rotate(0deg) translateY(50%) scale(1, 1);
+  }
+  12% {
+    transform: translateY(0%) translateY(-50%) rotate(0deg) translateY(50%) scale(1.08, 0.88);
+  }
+  37% {
+    transform: translateY(-22%) translateY(-50%) rotate(180deg) translateY(50%) scale(0.96, 1.04);
+  }
+  58% {
+    transform: translateY(0%) translateY(-50%) rotate(360deg) translateY(50%) scale(1.07, 0.9);
+  }
+  68%,
+  100% {
+    transform: translateY(0%) translateY(-50%) rotate(360deg) translateY(50%) scale(1, 1);
+  }
+}
+
+/* Wiggles side to side on its base, dying down. */
+@keyframes springy-move-wiggle {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  10% {
+    transform: rotate(-9deg);
+  }
+  20% {
+    transform: rotate(8deg);
+  }
+  30% {
+    transform: rotate(-7deg);
+  }
+  40% {
+    transform: rotate(6deg);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+  60% {
+    transform: rotate(2deg);
+  }
+}
+
+/* Stretches tall like waking up, then settles with a squash. */
+@keyframes springy-move-stretch {
+  0%,
+  76%,
+  100% {
+    transform: none;
+  }
+  26% {
+    transform: scale(0.88, 1.16);
+  }
+  44% {
+    transform: rotate(-3deg) scale(0.9, 1.14);
+  }
+  54% {
+    transform: scale(1.1, 0.86);
+  }
+  63% {
+    transform: scale(0.97, 1.04);
+  }
+  70% {
+    transform: scale(1.02, 0.98);
+  }
+}
+
+/* Leans with the glance: left, right, then back. */
+@keyframes springy-move-lean {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  10%,
+  28% {
+    transform: rotate(-5deg);
+  }
+  38%,
+  56% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes springy-move-glance {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  8%,
+  28% {
+    transform: translate(-11px, 2px);
+  }
+  36%,
+  56% {
+    transform: translate(11px, 2px);
+  }
+  63% {
+    transform: translate(0, -9px);
+  }
+}
+
+/* Little shakes, as if laughing (with happy eyes, see springy-show / springy-hide). */
+@keyframes springy-move-giggle {
+  0%,
+  72%,
+  100% {
+    transform: none;
+  }
+  8% {
+    transform: scale(1.04, 0.95);
+  }
+  14%,
+  26%,
+  38%,
+  50% {
+    transform: rotate(-3deg) scale(1.02, 0.98);
+  }
+  20%,
+  32%,
+  44%,
+  56% {
+    transform: rotate(3deg);
+  }
+  64% {
+    transform: scale(1.03, 0.97);
+  }
+}
+
+/* Sways left and right in rhythm, hopping on each beat. */
+@keyframes springy-move-dance {
+  0%,
+  78%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+  9%,
+  45% {
+    transform: translate(-5%, 0) rotate(-7deg) scale(1.04, 0.94);
+  }
+  18%,
+  36%,
+  54% {
+    transform: translate(0, -8%) rotate(0deg) scale(0.97, 1.04);
+  }
+  27%,
+  63% {
+    transform: translate(5%, 0) rotate(7deg) scale(1.04, 0.94);
+  }
+  72% {
+    transform: translate(0, 0) rotate(0deg) scale(1.02, 0.98);
+  }
+}
+
+/* Ducks down low, then pops up surprised (with springy-brows-pop). */
+@keyframes springy-move-peek {
+  0%,
+  74%,
+  100% {
+    transform: none;
+  }
+  18%,
+  34% {
+    transform: scale(1.14, 0.72);
+  }
+  46% {
+    transform: translateY(-14%) scale(0.93, 1.1);
+  }
+  56% {
+    transform: scale(1.06, 0.92);
+  }
+  64% {
+    transform: scale(0.98, 1.02);
+  }
+}

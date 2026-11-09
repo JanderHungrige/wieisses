@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PHRASE, fixedPhrases } from '../../shared/phrases.ts';
 import { spokenText, wantedTexts } from '../../server/domain/voice-texts.ts';
-import { lookAt, onLook, pupilOffset, springyMood, type Point } from '../../web/lib/springy.ts';
+import { GREETING_MOVES, lookAt, nextMove, onLook, pupilOffset, springyMood, type Move, type Point } from '../../web/lib/springy.ts';
 
 describe('Springy (web/lib/springy.ts)', () => {
   describe('springyMood', () => {
@@ -19,6 +19,30 @@ describe('Springy (web/lib/springy.ts)', () => {
 
     it('stays away from the adult screens', () => {
       for (const phase of ['loading', 'unregistered', 'offline'] as const) expect(springyMood(phase)).toBe('hidden');
+    });
+  });
+
+  describe('nextMove', () => {
+    it('has nine greeting moves: the original hop and eight new ones', () => {
+      expect(new Set(GREETING_MOVES).size).toBe(9);
+      expect(GREETING_MOVES[0]).toBe('hop');
+    });
+
+    it('never plays the same move twice in a row', () => {
+      for (const previous of GREETING_MOVES) {
+        for (const r of [0, 0.3, 0.5, 0.99, 0.999999]) expect(nextMove(previous, () => r)).not.toBe(previous);
+      }
+    });
+
+    it('reaches every other move, and every move at the start', () => {
+      const draws = (previous: Move | undefined) => new Set([0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => nextMove(previous, () => i / 9)));
+      expect(draws(undefined)).toEqual(new Set(GREETING_MOVES));
+      expect(draws('spin')).toEqual(new Set(GREETING_MOVES.filter((m) => m !== 'spin')));
+    });
+
+    it('stays in range when random() returns its edges', () => {
+      expect(GREETING_MOVES).toContain(nextMove('hop', () => 0));
+      expect(GREETING_MOVES).toContain(nextMove('hop', () => 1));
     });
   });
 
