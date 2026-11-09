@@ -3,7 +3,7 @@ id: 01-schul-umfrage
 title: Schul-Umfrage — tablet survey for primary school children with admin panel
 edition: wieisses
 depends_on: []
-relates: [02-springy-naturlook]
+relates: [02-springy-naturlook, 03-installierbare-app]
 source_files:
   - shared/catalog.ts
   - shared/phrases.ts

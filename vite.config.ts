@@ -1,14 +1,15 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
-// Two pages from one build: the kiosk at / and the admin panel at /admin/.
+// Two pages from one build: the kiosk at / and the admin panel at /admin/. web/public/ holds the
+// installable app's files, copied unhashed so their URLs never change (doc 03).
 // In dev the API runs separately (`npm run dev:server`, port 8092) and is proxied.
 const backend = 'http://127.0.0.1:8092';
 
 export default defineConfig({
   root: 'web',
   base: '/',
-  publicDir: false,
+  publicDir: 'public',
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },

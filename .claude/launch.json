@@ -16,6 +16,20 @@
       "port": 8092
     },
     {
+      "name": "wieisses-built",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "APP_ENV=dev",
+        "ADMIN_PASSWORD=dev-password-123",
+        "DATA_DIR=.data/built",
+        "STATIC_DIR=dist",
+        "PORT=8095",
+        "/Users/jwh/.nvm/versions/node/v24.21.0/bin/node",
+        "server/main.ts"
+      ],
+      "port": 8095
+    },
+    {
       "name": "wieisses-web",
       "runtimeExecutable": "/Users/jwh/.nvm/versions/node/v24.21.0/bin/node",
       "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5173", "--strictPort"],
