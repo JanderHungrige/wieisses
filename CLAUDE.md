@@ -1,7 +1,8 @@
 # Wie isses? — Project Rules
 
 Tablet survey for primary-school children: coloured topic tabs, every question as picture + text +
-read aloud, a self-chosen picture sign instead of a name, one answer per topic and day. Staff see
+read aloud, a self-chosen picture sign instead of a name, one answer per topic and day. Springy —
+the logo with googly eyes — guides the children over a picture-book meadow. Staff see
 charts over time in a password-protected admin panel and edit the questions there.
 Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Preact + Vite.
 
@@ -49,9 +50,20 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
   (`voice/export.py`). PyTorch never goes into the runtime stage, and onnxruntime's memory
   arena stays off (with the `MALLOC_*` env in `voice/Dockerfile`) — with the arena the service
   grows past its 768 MB limit within a few texts.
+- Pronunciation fixes go only into `spokenText()` (`server/domain/voice-texts.ts`): the voice service
+  gets the spoken form, the clip key and the screen keep the shown text (Springy → "s Pringy").
 - A change to the voice service's audio bumps `CLIP_FORMAT` in `server/domain/voice-texts.ts`
   and rolls out voice first: push the `voice/**` commit alone, wait for the host to roll it,
   then push the app (doc 01, Deployment).
+
+## Kiosk look (doc 02)
+- A screen's heading goes through `Prompt` (`web/kiosk/Prompt.tsx`): Springy + speech bubble + 🔊.
+  Springy is decoration (`aria-hidden`, no tap target), its mood comes from the phase
+  (`springyMood`), and its mouth moves only while the speech queue speaks — it never starts speech.
+- Buttons use the NinaNatur "Draft Sketch" tokens in `web/kiosk/kiosk.css` (`--line`, `--edge`,
+  `--lift`, `--wash`, `--wash-deep`); a picked state is never colour alone.
+- Animations move only `transform`/`opacity`; `prefers-reduced-motion` stills every one.
+- Everything is bundled (font, meadow, logo); AI-made pictures are listed in `THIRD_PARTY.md`.
 
 ## Deployment
 - Tablets pick up a new build by reloading themselves between two children (`restart` in

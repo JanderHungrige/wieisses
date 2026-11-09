@@ -1,5 +1,6 @@
 // The admin panel: password login, then results, question editor, signs, tablets and settings.
 import { useEffect, useState } from 'preact/hooks';
+import logo from '../logo.svg';
 import { ApiError } from '../lib/api.ts';
 import { LOGGED_OUT, adminApi, useRoute } from './adminApi.ts';
 import { drafts, useDrafts } from './drafts.ts';
@@ -58,7 +59,7 @@ export function App() {
   return (
     <div class="admin">
       <header class="top">
-        <a class="brand" href="#/">Wie isses? <span>Admin</span></a>
+        <a class="brand" href="#/"><img src={logo} alt="" width="35" height="30" /> Wie isses? <span>Admin</span></a>
         <nav aria-label="Bereiche">
           {NAV.map(([path, label]) => (
             <a href={`#/${path}`} aria-current={current === path ? 'page' : undefined}>
@@ -102,6 +103,7 @@ function Login({ onIn }: { onIn: () => void }) {
   return (
     <main class="login">
       <form class="card" onSubmit={(e) => void submit(e)}>
+        <img class="login-logo" src={logo} alt="" width="105" height="90" />
         <h1>Wie isses? · Admin</h1>
         <label for="pw">Passwort</label>
         <input id="pw" type="password" autocomplete="current-password" value={password} onInput={(e) => setPassword(e.currentTarget.value)} required />

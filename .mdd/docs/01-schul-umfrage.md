@@ -3,7 +3,7 @@ id: 01-schul-umfrage
 title: Schul-Umfrage — tablet survey for primary school children with admin panel
 edition: wieisses
 depends_on: []
-relates: []
+relates: [02-springy-naturlook]
 source_files:
   - shared/catalog.ts
   - shared/phrases.ts
@@ -160,7 +160,7 @@ test_files:
   - voice/test_audio.py
   - voice/test_kokoro_voice.py
 data_flow: greenfield
-last_synced: 2026-11-08
+last_synced: 2026-11-09
 status: complete
 phase: all
 mdd_version: 11
@@ -216,8 +216,9 @@ tablet (kiosk SPA, /)          admin browser (admin SPA, /admin/)
 - **Runtime:** Node 24 runs the TypeScript directly (type stripping, like TopRun's ladder
   service). Only runtime dependency: `zod`. Database: built-in `node:sqlite`.
 - **Frontend:** Vite multi-page build, Preact + TSX. Two entry points: the kiosk (`/`) and
-  the admin panel (`/admin/`). Charts with Chart.js. Font: Andika (SIL OFL, designed for
-  beginning readers), self-hosted. **No request ever leaves the site** (no CDN, no web
+  the admin panel (`/admin/`). Charts with Chart.js. Kiosk font: Playpen Sans (SIL OFL, a handwriting font
+  for children learning to read — doc 02; Andika until 2026-11-09), self-hosted; the admin uses
+  the system font. **No request ever leaves the site** (no CDN, no web
   fonts, no analytics) — a school's data-protection requirement.
 - **Schemas:** one Zod schema per entity in `shared/schema.ts`; server validation, admin
   forms and the TypeScript types all derive from it.
@@ -272,6 +273,7 @@ Animals 🦊 Fuchs 🐶 Hund 🐱 Katze 🐰 Hase 🐻 Bär 🐼 Panda 🐸 Fros
 
 Every sentence the kiosk speaks that is not admin content: prompts of each screen, the names of
 all animals, colours and fruits, the face labels, "Klasse 1" … "Klasse 6", "Überspringen",
+Springy's greeting (doc 02),
 "Fertig", "Danke!", "Tschüss!", the kind refusals ("Das hast du heute schon gemacht. Morgen
 wieder!", "Dieses Zeichen hat schon jemand …", "Kurze Pause! …"). The kiosk screens and the
 server's child-facing messages use these constants, so the spoken text and its clip always
@@ -341,8 +343,10 @@ which the server never grants.
 ## Business Rules
 
 ### The child's flow (kiosk)
-1. **Start screen** — title + one big "Los geht's" button (this tap also unlocks audio on iOS).
-2. **Picture code** — first *"Hast du schon ein Geheimzeichen?"*: **"Ja, ich habe eins 🔑"** /
+1. **Start screen** — Springy greeting in a bubble (*"Hallo, ich bin Springy!"*, shown, not spoken —
+   doc 02), title + one big "Los geht's" button (this tap also unlocks audio on iOS).
+2. **Picture code** — first Springy says *"Hallo, ich bin Springy!"*, then *"Hast du schon ein
+   Geheimzeichen?"*: **"Ja, ich habe eins 🔑"** /
    **"Ich bin neu ✨"**. Then three steps, one per screen: *Welches Tier?* → *Welche Farbe?* →
    *Welches Obst?* Each step is read aloud, each choice speaks its name when tapped, the
    picks so far are shown at the top, a back arrow undoes the last pick.
@@ -359,7 +363,7 @@ which the server never grants.
    Morgen wieder!"* instead of questions, with a 🔊 beside the sentence that reads it again. Before a tab is chosen, the same topics also appear
    as big tiles in the content area.
 4. **Questions, one per screen**: progress dots, big picture (uploaded image or emoji), text in
-   Andika ≥ 28 px, 🔊 replay button. With `autoRead` the question is read when it appears.
+   Playpen Sans ≥ 28 px, 🔊 replay button. With `autoRead` the question is read when it appears.
    Answer buttons ≥ 96 px. **Every answer tile (face or option) has its own 🔊** (48 px, in the
    tile's top-left corner, a separate button — never nested in the tile) that reads its label;
    "Fertig" and "Überspringen" have a 🔊 beside them. So a child can listen to every choice
@@ -429,6 +433,9 @@ which the server never grants.
   raw output is ≈ 8 dB quieter than Piper's was). Texts longer than 200 phonemes are spoken in
   chunks cut after a sentence mark (else a clause mark, else a space), which keeps the memory
   of one run small.
+- **Spoken form:** the voice service is given `spokenText(text)` — today only Springy's name, which
+  the German voice would read as *Schpringi* (doc 02, "Pronunciation"). The clip key, the lookup
+  and the screen use the shown text.
 - **Clip audio is trimmed:** the voice service cuts the silence the model leaves around speech to
   20 ms before and 50 ms after it (threshold 2 % of full scale, 5 ms fade-in/out; an
   all-silent result is left as it is), so composed sentences have only a short, natural gap

@@ -14,6 +14,26 @@ let queue: Item[] = [];
 let busy = false;
 let turn = 0; // ignores late "ended" events from something that was interrupted
 const player = typeof Audio === 'undefined' ? undefined : new Audio();
+const speakingListeners = new Set<(speaking: boolean) => void>();
+
+/** Springy's mouth moves exactly while this queue speaks (doc 02). */
+function setBusy(value: boolean): void {
+  if (busy === value) return;
+  busy = value;
+  for (const listener of speakingListeners) listener(value);
+}
+
+/** Calls `listener` whenever speaking starts or stops; returns the unsubscribe. */
+export function onSpeaking(listener: (speaking: boolean) => void): () => void {
+  speakingListeners.add(listener);
+  return () => {
+    speakingListeners.delete(listener);
+  };
+}
+
+export function isSpeaking(): boolean {
+  return busy;
+}
 
 const synth = (): SpeechSynthesis | undefined => ('speechSynthesis' in window ? window.speechSynthesis : undefined);
 
@@ -68,11 +88,11 @@ function next(): void {
   if (busy) return;
   const item = queue.shift();
   if (!item) return;
-  busy = true;
+  setBusy(true);
   const mine = ++turn;
   const done = () => {
     if (mine !== turn) return;
-    busy = false;
+    setBusy(false);
     next();
   };
   // A watchdog, because "ended" events are not guaranteed on every tablet browser.
@@ -109,7 +129,7 @@ const itemFor = (text: string): Item => {
 
 export function stopSpeech(): void {
   queue = [];
-  busy = false;
+  setBusy(false);
   turn++;
   synth()?.cancel();
   if (player) {

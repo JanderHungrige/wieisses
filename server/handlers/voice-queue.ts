@@ -8,7 +8,7 @@ import type { Db } from '../adapters/db.ts';
 import { getSettings } from '../adapters/settings-store.ts';
 import { VoiceUnreachable, type Synthesize } from '../adapters/voice-client.ts';
 import { clipUrls, pruneClips, saveClip } from '../adapters/voice-store.ts';
-import { VOICE_NAME, clipKey, lengthScaleFor, wantedTexts } from '../domain/voice-texts.ts';
+import { VOICE_NAME, clipKey, lengthScaleFor, spokenText, wantedTexts } from '../domain/voice-texts.ts';
 import type { Logger } from '../log.ts';
 
 export type VoiceQueue = {
@@ -48,7 +48,7 @@ export function createVoiceQueue(deps: Deps): VoiceQueue {
   async function runOne(job: Job, speak: Synthesize): Promise<'ok' | 'failed' | 'unreachable'> {
     working = job.text;
     try {
-      const mp3 = await speak(job.text, job.lengthScale);
+      const mp3 = await speak(spokenText(job.text), job.lengthScale);
       await saveClip(db, deps.mediaDir, { key: job.key, text: job.text, mp3, now: deps.now() });
       failed.delete(job.text);
       reachable = true;

@@ -18,6 +18,13 @@ export function clipKey(text: string, lengthScale: number): string {
   return createHash('sha256').update(`${VOICE_ID}|${CLIP_FORMAT}|${lengthScale.toFixed(2)}|${normaliseText(text)}`).digest('hex');
 }
 
+/** The form the voice service is given (doc 02, "Pronunciation"): the German voice reads "Springy"
+ *  as "Schpringi", so the s joins the word before — "ich bin Springy" → "ich bins Pringy", spoken
+ *  as one. The clip stays keyed by the shown text. */
+export function spokenText(text: string): string {
+  return text.replace(/(\p{L}) Springy\b/gu, '$1s Pringy');
+}
+
 type Active = { active: boolean };
 export type ContentForVoice = (Active & {
   name: string;
