@@ -273,7 +273,7 @@ Animals 🦊 Fuchs 🐶 Hund 🐱 Katze 🐰 Hase 🐻 Bär 🐼 Panda 🐸 Fros
 
 Every sentence the kiosk speaks that is not admin content: prompts of each screen, the names of
 all animals, colours and fruits, the face labels, "Klasse 1" … "Klasse 6", "Überspringen",
-Springy's greeting (doc 02),
+Springy's greeting (doc 02), the choice cards "Ja, ich habe eins", "Ich bin neu" and "Nochmal",
 "Fertig", "Danke!", "Tschüss!", the kind refusals ("Das hast du heute schon gemacht. Morgen
 wieder!", "Dieses Zeichen hat schon jemand …", "Kurze Pause! …"). The kiosk screens and the
 server's child-facing messages use these constants, so the spoken text and its clip always
@@ -347,11 +347,12 @@ which the server never grants.
    doc 02), title + one big "Los geht's" button (this tap also unlocks audio on iOS).
 2. **Picture code** — first Springy says *"Hallo, ich bin Springy!"*, then *"Hast du schon ein
    Geheimzeichen?"*: **"Ja, ich habe eins 🔑"** /
-   **"Ich bin neu ✨"**. Then three steps, one per screen: *Welches Tier?* → *Welche Farbe?* →
+   **"Ich bin neu ✨"**, each card with its own 🔊 in its top-left corner that reads its label
+   (tapping the card itself speaks nothing). Then three steps, one per screen: *Welches Tier?* → *Welche Farbe?* →
    *Welches Obst?* Each step is read aloud, each choice speaks its name when tapped, the
    picks so far are shown at the top, a back arrow undoes the last pick.
    - Returning: unknown code → *"Das Zeichen kenne ich nicht. Probier es nochmal!"* with
-     "Nochmal" and "Ich bin neu".
+     "Nochmal" and "Ich bin neu", each with its own 🔊 as above.
    - New: a fourth step *"In welche Klasse gehst du?"* (big numbers from `grades`). A taken
      combination → *"Dieses Zeichen hat schon jemand. Such dir ein anderes aus!"* and back to
      the fruit step. Success → the sign shown big and read aloud: *"Das ist jetzt dein
@@ -371,8 +372,9 @@ which the server never grants.
    silences any reading, marks the tapped tile, and a single answer advances after 0.9 s;
    multi-choice toggles silently and has a "Fertig" button; every question has a small
    "Überspringen".
-   (The picture-code screens of step 2 keep speaking each pick when tapped.) From the topic page
-   on, **every button has a 🔊** — a child who cannot read yet can have everything read aloud.
+   (The picture-code screens of step 2 keep speaking each pick when tapped.) The choice cards of
+   step 2 and, from the topic page on, **every button have a 🔊** — a child who cannot read yet
+   can have everything read aloud. How a 🔊 looks: doc 02, "Sketch buttons".
 5. **Submit** after the topic's last question → *"Danke!"* animation → back to the tabs with ✓.
    All topics done → *"Alles geschafft! Tschüss!"* → start screen after 5 s.
 6. A **"Tschüss 👋"** button is always visible, with a 🔊 beside it that reads *"Tschüss!"*.

@@ -5,6 +5,8 @@ import { ANIMALS, COLOURS, FACES, FRUITS } from './catalog.ts';
 export const PHRASE = Object.freeze({
   springyHello: 'Hallo, ich bin Springy!',
   askSign: 'Hast du schon ein Geheimzeichen?',
+  haveSign: 'Ja, ich habe eins',
+  newHere: 'Ich bin neu',
   pickAnimalNew: 'Such dir ein Tier aus!',
   pickColourNew: 'Jetzt eine Farbe!',
   pickFruitNew: 'Und jetzt ein Obst!',
@@ -15,6 +17,7 @@ export const PHRASE = Object.freeze({
   newSign: 'Das ist jetzt dein Geheimzeichen:',
   remember: 'Merk es dir gut!',
   unknownSign: 'Das Zeichen kenne ich nicht. Probier es nochmal!',
+  retry: 'Nochmal',
   signTaken: 'Dieses Zeichen hat schon jemand. Such dir ein anderes aus!',
   pauseGuess: 'Kurze Pause! Gleich kannst du es nochmal probieren.',
   pauseNew: 'Kurze Pause! Gleich kannst du ein Zeichen aussuchen.',

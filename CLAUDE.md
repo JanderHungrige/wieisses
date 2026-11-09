@@ -62,6 +62,8 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
   (`springyMood`), and its mouth moves only while the speech queue speaks — it never starts speech.
 - Buttons use the NinaNatur "Draft Sketch" tokens in `web/kiosk/kiosk.css` (`--line`, `--edge`,
   `--lift`, `--wash`, `--wash-deep`); a picked state is never colour alone.
+- A 🔊 is always `SpeakButton` (`web/kiosk/Prompt.tsx`, styles in `web/kiosk/speak.css`): the drawn
+  loudspeaker without a circle, never the 🔊 emoji; its waves pulse while its text is read.
 - Animations move only `transform`/`opacity`; `prefers-reduced-motion` stills every one.
 - Everything is bundled (font, meadow, logo); AI-made pictures are listed in `THIRD_PARTY.md`.
 

@@ -245,6 +245,18 @@ a.primary {
   box-shadow: var(--lift);
 }
 
+/* A prompt's bubble holds the heading and, at its end, the heading's 🔊. */
+.bubble-speak {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.bubble-speak h1 {
+  min-width: 0;
+  font-size: inherit;
+}
+
 /* The bubble's tail points at Springy on its left. */
 .bubble::before {
   content: '';
@@ -286,51 +298,6 @@ a.primary {
 .hint {
   margin: 0;
   font-size: 1.3rem;
-}
-
-.speak {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 56px;
-  height: 56px;
-  border: var(--line);
-  border-radius: var(--edge-round);
-  background: var(--card);
-  box-shadow: var(--lift);
-  font-size: 1.6rem;
-}
-
-.speak:disabled {
-  opacity: 0.45;
-}
-
-/* The 🔊 of a tile: its own button over the tile's top-left corner (the ✓ sits top-right). */
-.speak-corner {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 1;
-  width: 48px;
-  height: 48px;
-  font-size: 1.3rem;
-}
-
-.speak-tab {
-  width: 40px;
-  height: 40px;
-  margin-right: 0.25rem;
-  font-size: 1.1rem;
-}
-
-/* On the paper "Tschüss" pill the 🔊 stays white, so its circle still shows. */
-.speak-bye {
-  width: 40px;
-  height: 40px;
-  margin-right: 5px;
-  background: var(--card);
-  box-shadow: none;
-  font-size: 1.1rem;
 }
 
 .primary {
