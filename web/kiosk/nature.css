@@ -1,5 +1,12 @@
 /* The meadow behind the kiosk (doc 02, "Nature background"): a painted backdrop from Couch and,
-   over it, clouds, the sun and two butterflies. Only transform and opacity move. */
+   over it, clouds, the sun and two butterflies. Only transform and opacity move. The sun is also
+   the admin gate (.sun-gate, at the end). */
+
+:root {
+  --sun-top: max(84px, 9vh);
+  --sun-right: 5vw;
+  --sun-size: clamp(80px, 11vw, 130px);
+}
 
 .nature {
   position: fixed;
@@ -50,9 +57,9 @@
 
 .sun {
   position: absolute;
-  top: max(84px, 9vh);
-  right: 5vw;
-  width: clamp(80px, 11vw, 130px);
+  top: var(--sun-top);
+  right: var(--sun-right);
+  width: var(--sun-size);
   height: auto;
 }
 
@@ -143,6 +150,27 @@
   80% {
     transform: translate(78vw, 78vh) rotate(-6deg);
   }
+}
+
+/* An invisible round link over the sun, in the kiosk layer but under the screens' panels: the
+   stage lets taps through and only its screens take them, so the sun opens /admin/ only where it
+   shows — a panel over the sun keeps its own taps. */
+.sun-gate {
+  position: fixed;
+  top: var(--sun-top);
+  right: var(--sun-right);
+  z-index: -1;
+  width: var(--sun-size);
+  height: var(--sun-size);
+  border-radius: 50%;
+}
+
+.stage {
+  pointer-events: none;
+}
+
+.stage > * {
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

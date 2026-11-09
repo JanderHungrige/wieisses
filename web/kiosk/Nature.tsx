@@ -1,6 +1,7 @@
 // The meadow behind every screen (doc 02, "Nature background"): the painted backdrop (nature.css)
 // and, drawn over it in the same ink, drifting clouds, a sun with turning rays and two butterflies.
-// Decoration only — hidden from screen readers, never in the way of a tap.
+// Decoration only — hidden from screen readers, never in the way of a tap; the sun's admin gate is
+// a separate link in the kiosk layer (Kiosk.tsx, nature.css).
 
 const CLOUD = 'M34 78c-22 0-30-21-15-32-2-19 22-29 37-17 6-24 48-28 59-5 17-11 42-1 41 17 21 3 24 37-1 37z';
 
