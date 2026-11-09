@@ -1,0 +1,97 @@
+/* The 🔊 buttons (doc 02, "Sketch buttons"): the drawn, sun-yellow loudspeaker (SpeakerIcon in
+   Prompt.tsx) straight on the colour it belongs to — no circle, no emoji. While its text is read,
+   its waves pulse; reduced motion keeps them still. */
+
+.speak {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--edge-round);
+  background: transparent;
+}
+
+.speak:disabled {
+  opacity: 0.45;
+}
+
+.speaker {
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Sun-yellow, like the meadow's sun: every 🔊 is the same friendly thing to look for. */
+.speaker-body {
+  fill: #ffd54a;
+}
+
+.speak.playing .speaker-wave {
+  animation: speak-wave 0.5s ease-in-out infinite alternate;
+}
+
+.speak.playing .wave-2 {
+  animation-delay: 0.25s;
+}
+
+@keyframes speak-wave {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The bubble's own 🔊 at its end, after a dashed line. */
+.speak-bubble {
+  align-self: stretch;
+  height: auto;
+  min-height: 48px;
+  margin-right: -0.3em;
+  padding-left: 0.3em;
+  border-left: 1.5px dashed rgb(28 36 25 / 0.35);
+  border-radius: 0;
+}
+
+/* The 🔊 of a tile or choice card: its own button in the tile's top-left corner (the ✓ sits top-right). */
+.speak-corner {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 1;
+}
+
+.speak-tab,
+.speak-bye {
+  width: 40px;
+  height: 40px;
+}
+
+.speak-tab {
+  margin-right: 0.25rem;
+}
+
+.speak-bye {
+  margin-right: 4px;
+}
+
+.speak-tab .speaker,
+.speak-bye .speaker {
+  width: 32px;
+  height: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speak.playing .speaker-wave {
+    animation: none;
+  }
+}

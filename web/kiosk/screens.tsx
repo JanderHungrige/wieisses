@@ -3,7 +3,7 @@ import { useEffect } from 'preact/hooks';
 import { animal, colour, fruit, type CodePicks } from '../../shared/catalog.ts';
 import { PHRASE } from '../../shared/phrases.ts';
 import type { KioskTopic } from '../../shared/schema.ts';
-import { say, sayParts } from '../lib/speech.ts';
+import { say, sayParts, stopSpeech } from '../lib/speech.ts';
 import { Prompt, SpeakButton } from './Prompt.tsx';
 import { Picture } from './QuestionFlow.tsx';
 import { Springy } from './Springy.tsx';
@@ -11,6 +11,19 @@ import { Springy } from './Springy.tsx';
 /** Speaks `text` once when the screen appears. */
 function useSay(text: string): void {
   useEffect(() => say(text), [text]);
+}
+
+/** A big choice card with its own 🔊 in the corner (doc 01, step 2): the card itself speaks nothing. */
+function ChoiceCard({ icon, label, onPick }: { icon: string; label: string; onPick: () => void }) {
+  return (
+    <div class="tile-slot">
+      <button type="button" class="tile choice-card" onClick={() => (stopSpeech(), onPick())}>
+        <span class="big" aria-hidden="true">{icon}</span>
+        <span class="label">{label}</span>
+      </button>
+      <SpeakButton text={label} class="speak-corner" />
+    </div>
+  );
 }
 
 // Springy greets in a bubble; it is not spoken here — audio is locked until "Los geht's" (doc 02).
@@ -35,14 +48,8 @@ export function AskScreen({ onChoose }: { onChoose: (mode: 'new' | 'returning') 
     <section class="center" aria-labelledby="ask-title">
       <Prompt id="ask-title" text={text} />
       <div class="two">
-        <button type="button" class="tile choice-card" onClick={() => onChoose('returning')}>
-          <span class="big" aria-hidden="true">🔑</span>
-          <span class="label">Ja, ich habe eins</span>
-        </button>
-        <button type="button" class="tile choice-card" onClick={() => onChoose('new')}>
-          <span class="big" aria-hidden="true">✨</span>
-          <span class="label">Ich bin neu</span>
-        </button>
+        <ChoiceCard icon="🔑" label={PHRASE.haveSign} onPick={() => onChoose('returning')} />
+        <ChoiceCard icon="✨" label={PHRASE.newHere} onPick={() => onChoose('new')} />
       </div>
     </section>
   );
@@ -82,14 +89,8 @@ export function UnknownCodeScreen({ onRetry, onNew }: { onRetry: () => void; onN
         <h1 id="unknown-title" class="prompt bubble">{text}</h1>
       </div>
       <div class="two">
-        <button type="button" class="tile choice-card" onClick={onRetry}>
-          <span class="big" aria-hidden="true">🔁</span>
-          <span class="label">Nochmal</span>
-        </button>
-        <button type="button" class="tile choice-card" onClick={onNew}>
-          <span class="big" aria-hidden="true">✨</span>
-          <span class="label">Ich bin neu</span>
-        </button>
+        <ChoiceCard icon="🔁" label={PHRASE.retry} onPick={onRetry} />
+        <ChoiceCard icon="✨" label={PHRASE.newHere} onPick={onNew} />
       </div>
     </section>
   );

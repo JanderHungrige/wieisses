@@ -9,6 +9,7 @@ source_files:
   - web/kiosk/Springy.tsx
   - web/kiosk/springy-body.ts
   - web/kiosk/springy.css
+  - web/kiosk/speak.css
   - web/kiosk/Nature.tsx
   - web/kiosk/nature.css
   - web/kiosk/assets/wiese.webp
@@ -109,7 +110,8 @@ non-finite one, gives `{ x: 0, y: 0 }`.
 ### Where Springy is
 - **Every prompt** (`Prompt`: ask, picture code, topic home, "schon gemacht", questions): a small
   Springy (48 px phone, up to 92 px tablet) left of the heading; the heading is drawn as Springy's speech
-  bubble (paper, ink outline, a tail pointing at Springy); its 🔊 stays beside the bubble.
+  bubble (paper, ink outline, a tail pointing at Springy); its 🔊 sits inside the bubble at its
+  end, after a dashed divider (the heading itself stays only the text).
 - **Start screen:** big Springy (clamp 140–240 px) above "Los geht's" instead of the 👋😊.
 - **Thanks screen:** big cheering Springy above "Danke!" / "Alles geschafft!"; the confetti stays.
 - Exactly one Springy on screen. It is decorative: `aria-hidden="true"`, never a tap target
@@ -161,7 +163,13 @@ ink `#1c2419`, paper `#fbfaf6`, wash `color-mix(#8fbf6a 34%, paper)`, deep wash
   or wash. Tiles keep their own colours (topic colour, face tint, white).
 - A picked tile: drawn heavier (4 px ink border) and ringed in green; options also show the ✓ —
   never colour alone.
-- 🔊 buttons: paper circle with a hand-drawn round edge and ink border.
+- 🔊 buttons: never the 🔊 emoji, but a **drawn loudspeaker** (`SpeakerIcon`: ink line, sun-yellow
+  body, two sound waves) **without a circle**, straight on the colour it belongs to — the tab,
+  the tile's corner, the bubble's end, beside "Fertig"/"Überspringen"/"Tschüss". The tap area
+  stays ≥ 40 px (48 px on tiles and in the bubble); pressed it sits down like every button;
+  disabled it fades. **While its text is being read, its waves pulse** (until the speech queue
+  falls silent or anything else interrupts it), so a child sees which 🔊 is talking; reduced
+  motion → the waves stay still.
 - Tabs: the hand-drawn edge on top, the topic colour, the ink border.
 - Reduced motion → no rotate/translate.
 
