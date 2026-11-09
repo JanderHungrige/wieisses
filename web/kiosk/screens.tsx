@@ -6,16 +6,21 @@ import type { KioskTopic } from '../../shared/schema.ts';
 import { say, sayParts } from '../lib/speech.ts';
 import { Prompt, SpeakButton } from './Prompt.tsx';
 import { Picture } from './QuestionFlow.tsx';
+import { Springy } from './Springy.tsx';
 
 /** Speaks `text` once when the screen appears. */
 function useSay(text: string): void {
   useEffect(() => say(text), [text]);
 }
 
+// Springy greets in a bubble; it is not spoken here — audio is locked until "Los geht's" (doc 02).
 export function StartScreen({ title, onStart }: { title: string; onStart: () => void }) {
   return (
     <section class="center start" aria-labelledby="start-title">
-      <p class="hello" aria-hidden="true">👋😊</p>
+      <div class="springy-greeting">
+        <Springy size="big" />
+        <p class="bubble greeting">{PHRASE.springyHello}</p>
+      </div>
       <h1 id="start-title" class="title">{title}</h1>
       <button type="button" class="primary huge" onClick={onStart}>Los geht's ▶</button>
     </section>
@@ -24,7 +29,8 @@ export function StartScreen({ title, onStart }: { title: string; onStart: () => 
 
 export function AskScreen({ onChoose }: { onChoose: (mode: 'new' | 'returning') => void }) {
   const text = PHRASE.askSign;
-  useSay(text);
+  // The first thing a child hears: Springy says hello, then asks (doc 02, "What Springy says").
+  useEffect(() => sayParts([PHRASE.springyHello, text]), [text]);
   return (
     <section class="center" aria-labelledby="ask-title">
       <Prompt id="ask-title" text={text} />
@@ -51,7 +57,10 @@ export function WelcomeScreen({ picks, onOk }: { picks: CodePicks; onOk: () => v
   }, [picks]);
   return (
     <section class="center" aria-labelledby="welcome-title">
-      <h1 id="welcome-title" class="prompt">Das ist jetzt dein Geheimzeichen!</h1>
+      <div class="prompt-row">
+        <Springy size="small" />
+        <h1 id="welcome-title" class="prompt bubble">Das ist jetzt dein Geheimzeichen!</h1>
+      </div>
       <div class="code-card">
         <span class="code-part"><span class="big" aria-hidden="true">{animal(picks.animal)?.emoji}</span>{animal(picks.animal)?.name}</span>
         <span class="code-part"><span class="dot big-dot" style={{ background: c?.hex }} aria-hidden="true" />{c?.name}</span>
@@ -68,8 +77,10 @@ export function UnknownCodeScreen({ onRetry, onNew }: { onRetry: () => void; onN
   useSay(text);
   return (
     <section class="center" aria-labelledby="unknown-title">
-      <p class="hello" aria-hidden="true">🤔</p>
-      <h1 id="unknown-title" class="prompt">{text}</h1>
+      <div class="prompt-row">
+        <Springy size="small" />
+        <h1 id="unknown-title" class="prompt bubble">{text}</h1>
+      </div>
       <div class="two">
         <button type="button" class="tile choice-card" onClick={onRetry}>
           <span class="big" aria-hidden="true">🔁</span>
@@ -124,6 +135,7 @@ export function ThanksScreen({ all }: { all: boolean }) {
       <div class="confetti" aria-hidden="true">
         {['🎉', '⭐', '🎈', '💛', '🌟', '🎊'].map((e, i) => <span style={{ animationDelay: `${i * 0.12}s` }}>{e}</span>)}
       </div>
+      <Springy size="big" />
       <h1 id="thanks-title" class="title">{all ? 'Alles geschafft!' : 'Danke!'}</h1>
       {all && <p class="hint">Tschüss! 👋</p>}
     </section>

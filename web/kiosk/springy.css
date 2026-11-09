@@ -1,0 +1,242 @@
+/* Springy (doc 02): size, colours and motion of the SVG rig in Springy.tsx. Only transform and
+   opacity move; reduced motion stills all of it. In SVG, CSS px are the drawing's own units. */
+
+.springy {
+  display: block;
+  flex: 0 0 auto;
+  height: auto;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.springy-small {
+  width: clamp(48px, 9vw, 92px);
+}
+
+.springy-big {
+  width: clamp(140px, 27vh, 230px);
+}
+
+/* Room above for the jumps on the thanks screen, clear of the confetti. */
+.thanks .springy-big {
+  margin-top: 2.4rem;
+}
+
+.springy-body {
+  fill: #0000bd;
+  stroke: #14164f;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+.springy-white {
+  fill: #fff;
+  stroke: #14164f;
+  stroke-width: 4;
+}
+
+.springy-pupil circle {
+  fill: #10123a;
+}
+
+.springy-pupil .springy-shine {
+  fill: #fff;
+}
+
+.springy-pupil {
+  transition: transform 0.25s ease-out;
+}
+
+.springy-brows path,
+.springy-happy path,
+.springy-smile {
+  fill: none;
+  stroke: #14164f;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.springy-smile {
+  stroke-width: 5;
+}
+
+.springy-open {
+  fill: #8a2433;
+  stroke: #14164f;
+  stroke-width: 4;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+
+.springy-happy {
+  opacity: 0;
+}
+
+/* ── Motion ──────────────────────────────────────────────────────── */
+
+.springy-spring,
+.springy-eyes,
+.springy-brows {
+  transform-box: fill-box;
+}
+
+/* The spring squashes and stretches from its bottom. */
+.springy-spring {
+  transform-origin: 50% 100%;
+}
+
+.mood-idle .springy-spring {
+  animation: springy-boing 3.8s ease-in-out infinite;
+}
+
+.mood-hello .springy-spring {
+  animation: springy-hello 1.8s ease-in-out infinite;
+}
+
+.mood-cheer .springy-spring {
+  animation: springy-jump 1s cubic-bezier(0.3, 0.6, 0.4, 1) infinite;
+}
+
+.springy-eyes {
+  transform-origin: 50% 50%;
+  animation: springy-blink 4.6s infinite;
+}
+
+/* Talking: the mouth opens and shuts while the speech queue speaks. */
+.springy[data-talking] .springy-open {
+  animation: springy-mouth-open 0.32s linear infinite;
+}
+
+.springy[data-talking] .springy-smile {
+  animation: springy-mouth-shut 0.32s linear infinite;
+}
+
+/* Cheering: happy eyes (^ ^ in the whites), a wide-open smile, raised brows. */
+.mood-cheer .springy-eyes {
+  animation: none;
+}
+
+.mood-cheer .springy-pupil {
+  opacity: 0;
+}
+
+.mood-cheer .springy-happy,
+.mood-cheer .springy-open {
+  opacity: 1;
+}
+
+.mood-cheer .springy-smile {
+  opacity: 0;
+}
+
+.mood-cheer .springy-brows {
+  transform: translateY(-6px);
+}
+
+@keyframes springy-boing {
+  0%,
+  62%,
+  100% {
+    transform: none;
+  }
+  70% {
+    transform: scale(1.06, 0.9);
+  }
+  80% {
+    transform: translateY(-7%) scale(0.96, 1.05);
+  }
+  88% {
+    transform: scale(1.03, 0.96);
+  }
+  94% {
+    transform: scale(0.99, 1.01);
+  }
+}
+
+@keyframes springy-hello {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateY(-10%) rotate(-7deg) scale(0.97, 1.04);
+  }
+  40% {
+    transform: scale(1.05, 0.93);
+  }
+  60% {
+    transform: translateY(-6%) rotate(6deg);
+  }
+  80% {
+    transform: scale(1.03, 0.96);
+  }
+}
+
+@keyframes springy-jump {
+  0%,
+  100% {
+    transform: scale(1.06, 0.9);
+  }
+  45% {
+    transform: translateY(-20%) rotate(-4deg) scale(0.95, 1.07);
+  }
+  70% {
+    transform: translateY(-4%);
+  }
+}
+
+@keyframes springy-blink {
+  0%,
+  94%,
+  100% {
+    transform: none;
+  }
+  96% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes springy-mouth-open {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes springy-mouth-shut {
+  0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .springy-spring,
+  .springy-eyes {
+    animation: none !important;
+  }
+
+  .springy-pupil {
+    transform: none !important;
+    transition: none;
+  }
+
+  .springy[data-talking] .springy-open {
+    animation: none;
+    opacity: 1;
+  }
+
+  .springy[data-talking] .springy-smile {
+    animation: none;
+    opacity: 0;
+  }
+}

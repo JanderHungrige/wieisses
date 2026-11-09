@@ -3,6 +3,7 @@
 import { ANIMALS, COLOURS, FACES, FRUITS } from './catalog.ts';
 
 export const PHRASE = Object.freeze({
+  springyHello: 'Hallo, ich bin Springy!',
   askSign: 'Hast du schon ein Geheimzeichen?',
   pickAnimalNew: 'Such dir ein Tier aus!',
   pickColourNew: 'Jetzt eine Farbe!',

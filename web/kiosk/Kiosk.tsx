@@ -1,11 +1,15 @@
-// The kiosk page: header with the coloured topic tabs and "Tschüss", and the current screen.
+// The kiosk page: the meadow behind it, header with the coloured topic tabs and "Tschüss", and the
+// current screen; Springy's mood follows the screen (doc 02).
 import type { KioskTopic } from '../../shared/schema.ts';
 import { PHRASE } from '../../shared/phrases.ts';
 import { unlockAudio } from '../lib/speech.ts';
+import { springyMood } from '../lib/springy.ts';
 import { CodePicker } from './CodePicker.tsx';
+import { Nature } from './Nature.tsx';
 import { QuestionFlow } from './QuestionFlow.tsx';
 import * as S from './screens.tsx';
 import { SpeakButton } from './Prompt.tsx';
+import { SpringyMood } from './Springy.tsx';
 import { RESTING, useKiosk } from './useKiosk.ts';
 
 type K = ReturnType<typeof useKiosk>;
@@ -18,24 +22,27 @@ export function Kiosk() {
   const showTabs = config && session && (phase.name === 'topics' || phase.name === 'thanks');
 
   return (
-    <div class="kiosk" style={{ '--topic': active?.color ?? '#fff8ec' }}>
-      <header class="bar">
-        {showTabs ? (
-          <TopicTabs topics={config.topics} done={session.done} activeId={activeId} onPick={k.openTopic} />
-        ) : (
-          <span class="bar-title">{phase.name === 'start' ? '' : (config?.title ?? 'Wie isses?')}</span>
-        )}
-        {!RESTING.has(phase.name) && (
-          <span class="bye-slot">
-            <button type="button" class="bye" onClick={k.bye}>Tschüss 👋</button>
-            <SpeakButton text={PHRASE.bye} class="speak-bye" />
-          </span>
-        )}
-      </header>
-      <main class="stage">
-        <Screen k={k} active={active} />
-      </main>
-    </div>
+    <SpringyMood.Provider value={springyMood(phase.name)}>
+      <Nature />
+      <div class="kiosk" style={{ '--topic': active?.color ?? '#fff8ec' }}>
+        <header class="bar">
+          {showTabs ? (
+            <TopicTabs topics={config.topics} done={session.done} activeId={activeId} onPick={k.openTopic} />
+          ) : (
+            <span class="bar-title">{phase.name === 'start' ? '' : (config?.title ?? 'Wie isses?')}</span>
+          )}
+          {!RESTING.has(phase.name) && (
+            <span class="bye-slot">
+              <button type="button" class="bye" onClick={k.bye}>Tschüss 👋</button>
+              <SpeakButton text={PHRASE.bye} class="speak-bye" />
+            </span>
+          )}
+        </header>
+        <main class="stage">
+          <Screen k={k} active={active} />
+        </main>
+      </div>
+    </SpringyMood.Provider>
   );
 }
 

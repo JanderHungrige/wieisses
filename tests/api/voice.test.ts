@@ -48,6 +48,15 @@ describe('Voice API (fake voice service)', () => {
       expect(voice.requests).toHaveLength(total);
     });
 
+    it("asks the voice for Springy's name in its spoken form and keys the clip by the shown text (doc 02)", async () => {
+      await generate();
+      const texts = voice.requests.map((r) => r.text);
+      expect(texts).toContain('Hallo, ich bins Pringy!');
+      expect(texts).not.toContain('Hallo, ich bin Springy!');
+      expect(allClips(t.db).find((c) => c.text === 'Hallo, ich bin Springy!')?.url).toMatch(/^\/media\/[a-f0-9]{32}\.mp3$/);
+      expect((await config()).voice['Hallo, ich bin Springy!']).toMatch(/^\/media\//);
+    });
+
     it('stores each clip as /media/<32 hex>.mp3 that the media route serves as audio/mpeg', async () => {
       await generate();
       const clip = allClips(t.db).find((c) => c.text === 'Wie hat es geschmeckt?');

@@ -1,0 +1,173 @@
+/* The meadow behind the kiosk (doc 02, "Nature background"): a painted backdrop from Couch and,
+   over it, clouds, the sun and two butterflies. Only transform and opacity move. */
+
+.nature {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #d4ebf4 url('./assets/wiese.webp') center bottom / cover no-repeat;
+}
+
+.cloud {
+  position: absolute;
+  left: 0;
+  width: clamp(110px, 16vw, 190px);
+  height: auto;
+  animation: cloud-drift linear infinite;
+}
+
+.cloud-1 {
+  top: 11vh;
+  animation-duration: 95s;
+  animation-delay: -30s;
+}
+
+.cloud-2 {
+  top: 24vh;
+  width: clamp(80px, 11vw, 130px);
+  opacity: 0.9;
+  animation-duration: 140s;
+  animation-delay: -95s;
+}
+
+.cloud-3 {
+  top: 4vh;
+  width: clamp(90px, 13vw, 150px);
+  animation-duration: 120s;
+  animation-delay: -10s;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-25vw);
+  }
+  to {
+    transform: translateX(105vw);
+  }
+}
+
+.sun {
+  position: absolute;
+  top: max(84px, 9vh);
+  right: 5vw;
+  width: clamp(80px, 11vw, 130px);
+  height: auto;
+}
+
+.sun-rays {
+  animation: sun-turn 60s linear infinite;
+}
+
+@keyframes sun-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A butterfly: the outer box flies its loop, the wings flap inside it. */
+.butterfly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: clamp(30px, 4vw, 44px);
+}
+
+.butterfly svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.wing {
+  transform-box: fill-box;
+  animation: wing-flap 0.35s ease-in-out infinite alternate;
+}
+
+.wing-left {
+  transform-origin: 100% 50%;
+}
+
+.wing-right {
+  transform-origin: 0 50%;
+}
+
+@keyframes wing-flap {
+  to {
+    transform: scaleX(0.25);
+  }
+}
+
+.butterfly-1 {
+  animation: flight-1 22s ease-in-out infinite;
+}
+
+.butterfly-2 {
+  animation: flight-2 26s ease-in-out infinite;
+  animation-delay: -9s;
+}
+
+.butterfly-2 .wing {
+  animation-duration: 0.3s;
+}
+
+@keyframes flight-1 {
+  0%,
+  100% {
+    transform: translate(6vw, 74vh) rotate(-8deg);
+  }
+  25% {
+    transform: translate(28vw, 58vh) rotate(10deg);
+  }
+  50% {
+    transform: translate(16vw, 46vh) rotate(-12deg);
+  }
+  75% {
+    transform: translate(3vw, 62vh) rotate(6deg);
+  }
+}
+
+@keyframes flight-2 {
+  0%,
+  100% {
+    transform: translate(88vw, 66vh) rotate(8deg);
+  }
+  30% {
+    transform: translate(70vw, 52vh) rotate(-10deg);
+  }
+  60% {
+    transform: translate(92vw, 40vh) rotate(12deg);
+  }
+  80% {
+    transform: translate(78vw, 78vh) rotate(-6deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nature *,
+  .nature {
+    animation: none !important;
+  }
+
+  .cloud-1 {
+    transform: translateX(8vw);
+  }
+
+  .cloud-2 {
+    transform: translateX(60vw);
+  }
+
+  .cloud-3 {
+    transform: translateX(34vw);
+  }
+
+  .butterfly-1 {
+    transform: translate(6vw, 74vh);
+  }
+
+  .butterfly-2 {
+    transform: translate(88vw, 66vh);
+  }
+}
