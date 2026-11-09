@@ -16,17 +16,6 @@ type SeedQuestion = {
 };
 type SeedTopic = { name: string; icon: string; color: string; questions: SeedQuestion[] };
 
-const ACTIVITIES: SeedOption[] = [
-  ['⚽', 'Draußen spielen'],
-  ['✂️', 'Basteln'],
-  ['🎨', 'Malen'],
-  ['📖', 'Lesen'],
-  ['🧱', 'Bauen'],
-  ['🎲', 'Brettspiele'],
-  ['🎵', 'Musik'],
-  ['🛋️', 'Ausruhen'],
-];
-
 const STARTER: readonly SeedTopic[] = [
   {
     name: 'Essen',
@@ -35,22 +24,7 @@ const STARTER: readonly SeedTopic[] = [
     questions: [
       { kind: 'scale5', icon: '🍝', text: 'Wie hat dir das Essen heute geschmeckt?' },
       { kind: 'yesno', icon: '😋', text: 'Bist du satt geworden?' },
-      {
-        kind: 'choice',
-        multi: true,
-        extended: true,
-        icon: '🍴',
-        text: 'Was isst du am liebsten?',
-        options: [['🍝', 'Nudeln'], ['🍕', 'Pizza'], ['🍚', 'Reis'], ['🥔', 'Kartoffeln'], ['🥦', 'Gemüse'], ['🍎', 'Obst'], ['🐟', 'Fisch'], ['🍲', 'Suppe']],
-      },
-      { kind: 'yesno', extended: true, icon: '⏰', text: 'Hattest du genug Zeit zum Essen?' },
-      {
-        kind: 'choice',
-        extended: true,
-        icon: '👂',
-        text: 'Wie laut war es beim Essen?',
-        options: [['🤫', 'Leise'], ['🙂', 'Mittel'], ['📢', 'Laut']],
-      },
+      { kind: 'yesno', icon: '⏰', text: 'Hattest du genug Zeit zum Essen?' },
     ],
   },
   {
@@ -58,7 +32,7 @@ const STARTER: readonly SeedTopic[] = [
     icon: '📚',
     color: '#5aa9e6',
     questions: [
-      { kind: 'scale5', icon: '✏️', text: 'Wie gut konntest du heute deine Hausaufgaben machen?' },
+      { kind: 'scale5', icon: '✏️', text: 'Wie gut konntest du heute in der Mittagsinsel deine Hausaufgaben machen?' },
       {
         kind: 'choice',
         icon: '🙋',
@@ -74,11 +48,11 @@ const STARTER: readonly SeedTopic[] = [
     icon: '🤝',
     color: '#4cc38a',
     questions: [
-      { kind: 'scale5', icon: '💛', text: 'Hast du dich heute wohlgefühlt?' },
-      { kind: 'scale5', icon: '👂', text: 'Haben dir die Erwachsenen heute zugehört?' },
+      { kind: 'scale5', icon: '💛', text: 'Hast du dich heute in der Mittagsinsel wohlgefühlt?' },
+      { kind: 'scale5', icon: '👂', text: 'Haben dir die Erwachsenen heute in der Mittagsinsel zugehört?' },
       { kind: 'yesno', extended: true, icon: '🤗', text: 'Kannst du zu einem Erwachsenen gehen, wenn du traurig bist?' },
       { kind: 'scale3', extended: true, icon: '⚖️', text: 'Werden Streits bei uns fair gelöst?' },
-      { kind: 'yesno', extended: true, icon: '⭐', text: 'Hat dich heute jemand gelobt?' },
+      { kind: 'yesno', extended: true, icon: '⭐', text: 'Hat dich heute in der Mittagsinsel jemand gelobt?' },
     ],
   },
   {
@@ -86,17 +60,13 @@ const STARTER: readonly SeedTopic[] = [
     icon: '🎨',
     color: '#b388eb',
     questions: [
-      { kind: 'scale5', icon: '🎈', text: 'Wie hat dir heute gefallen, was du gemacht hast?' },
-      { kind: 'choice', multi: true, icon: '🧩', text: 'Was hast du heute gemacht?', options: ACTIVITIES },
+      { kind: 'scale5', icon: '🎈', text: 'Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?' },
       {
         kind: 'choice',
-        multi: true,
-        extended: true,
-        icon: '🌟',
-        text: 'Was möchtest du öfter machen?',
-        options: [...ACTIVITIES, ['🧁', 'Kochen und Backen'], ['🏃', 'Sport'], ['🎭', 'Theater'], ['🚌', 'Ausflüge']],
+        icon: '🤔',
+        text: 'Spielst du lieber drinnen oder draußen?',
+        options: [['🏠', 'Drinnen'], ['🌳', 'Draußen']],
       },
-      { kind: 'scale3', extended: true, icon: '🧸', text: 'Gibt es genug Spielsachen und Material?' },
     ],
   },
 ];

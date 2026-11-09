@@ -3,6 +3,7 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync, backup } from 'node:sqlite';
+import { QUESTIONS_V3 } from './questions-v3.ts';
 
 export type Db = DatabaseSync;
 
@@ -103,6 +104,8 @@ const MIGRATIONS: readonly string[] = Object.freeze([
     created_at TEXT NOT NULL
   );
   `,
+  // v3 — the question update of 2026-11-09: data only, no schema change (doc 01, "Starter content").
+  QUESTIONS_V3,
 ]);
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
