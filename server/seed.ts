@@ -16,6 +16,17 @@ type SeedQuestion = {
 };
 type SeedTopic = { name: string; icon: string; color: string; questions: SeedQuestion[] };
 
+const ACTIVITIES: SeedOption[] = [
+  ['⚽', 'Draußen spielen'],
+  ['✂️', 'Basteln'],
+  ['🎨', 'Malen'],
+  ['📖', 'Lesen'],
+  ['🧱', 'Bauen'],
+  ['🎲', 'Brettspiele'],
+  ['🎵', 'Musik'],
+  ['🛋️', 'Ausruhen'],
+];
+
 const STARTER: readonly SeedTopic[] = [
   {
     name: 'Essen',
@@ -25,6 +36,21 @@ const STARTER: readonly SeedTopic[] = [
       { kind: 'scale5', icon: '🍝', text: 'Wie hat dir das Essen heute geschmeckt?' },
       { kind: 'yesno', icon: '😋', text: 'Bist du satt geworden?' },
       { kind: 'yesno', icon: '⏰', text: 'Hattest du genug Zeit zum Essen?' },
+      {
+        kind: 'choice',
+        multi: true,
+        extended: true,
+        icon: '🍴',
+        text: 'Was isst du am liebsten?',
+        options: [['🍝', 'Nudeln'], ['🍕', 'Pizza'], ['🍚', 'Reis'], ['🥔', 'Kartoffeln'], ['🥦', 'Gemüse'], ['🍎', 'Obst'], ['🐟', 'Fisch'], ['🍲', 'Suppe']],
+      },
+      {
+        kind: 'choice',
+        extended: true,
+        icon: '👂',
+        text: 'Wie laut war es beim Essen?',
+        options: [['🤫', 'Leise'], ['🙂', 'Mittel'], ['📢', 'Laut']],
+      },
     ],
   },
   {
@@ -63,6 +89,23 @@ const STARTER: readonly SeedTopic[] = [
       { kind: 'scale5', icon: '🎈', text: 'Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?' },
       {
         kind: 'choice',
+        icon: '🌤️',
+        text: 'Warst du heute in der Mittagsinsel mehr draußen, drinnen oder etwa gleich?',
+        options: [['🌳', 'Draußen'], ['🏠', 'Drinnen'], ['⚖️', 'Etwa gleich']],
+      },
+      { kind: 'choice', multi: true, extended: true, icon: '🧩', text: 'Was hast du heute in der Mittagsinsel gemacht?', options: ACTIVITIES },
+      {
+        kind: 'choice',
+        multi: true,
+        extended: true,
+        icon: '🌟',
+        text: 'Was möchtest du öfter machen?',
+        options: [...ACTIVITIES, ['🧁', 'Kochen und Backen'], ['🏃', 'Sport'], ['🎭', 'Theater'], ['🚌', 'Ausflüge']],
+      },
+      { kind: 'scale3', extended: true, icon: '🧸', text: 'Gibt es genug Spielsachen und Material?' },
+      {
+        kind: 'choice',
+        extended: true,
         icon: '🤔',
         text: 'Spielst du lieber drinnen oder draußen?',
         options: [['🏠', 'Drinnen'], ['🌳', 'Draußen']],

@@ -298,10 +298,10 @@ fixed parts — e.g. *"Das ist jetzt dein Geheimzeichen:"* · *Fuchs* · *Blau* 
 
 | Tab | Colour | Core questions | Extended questions |
 |---|---|---|---|
-| 🍽️ Essen | orange | Wie hat dir das Essen heute geschmeckt? (scale5) · Bist du satt geworden? (yesno) · Hattest du genug Zeit zum Essen? (yesno) | — |
+| 🍽️ Essen | orange | Wie hat dir das Essen heute geschmeckt? (scale5) · Bist du satt geworden? (yesno) · Hattest du genug Zeit zum Essen? (yesno) | Was isst du am liebsten? (choice, multi) · Wie laut war es beim Essen? (choice: leise/mittel/laut) |
 | 📚 Hausaufgaben | blue | Wie gut konntest du heute in der Mittagsinsel deine Hausaufgaben machen? (scale5) · Hat dir jemand geholfen, wenn du Hilfe gebraucht hast? (choice: ja/nein/brauchte keine) | War es ruhig genug zum Arbeiten? (scale3) · Hattest du genug Zeit? (yesno) |
 | 🤝 Miteinander | green | Hast du dich heute in der Mittagsinsel wohlgefühlt? (scale5) · Haben dir die Erwachsenen heute in der Mittagsinsel zugehört? (scale5) | Kannst du zu einem Erwachsenen gehen, wenn du traurig bist? (yesno) · Werden Streits fair gelöst? (scale3) · Hat dich heute in der Mittagsinsel jemand gelobt? (yesno) |
-| 🎨 Spielen & Basteln | purple | Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast? (scale5) · Spielst du lieber drinnen oder draußen? (choice: drinnen/draußen) | — |
+| 🎨 Spielen & Basteln | purple | Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast? (scale5) · Warst du heute in der Mittagsinsel mehr draußen, drinnen oder etwa gleich? (choice: draußen/drinnen/etwa gleich) | Was hast du heute in der Mittagsinsel gemacht? (choice, multi: draußen, basteln, malen, lesen, bauen, Brettspiele, Musik, ausruhen) · Was möchtest du öfter machen? (choice, multi) · Gibt es genug Spielsachen und Material? (scale3) · Spielst du lieber drinnen oder draußen? (choice: drinnen/draußen) |
 
 "In der Mittagsinsel" after "heute" makes clear the questions are about the after-school care
 only, not the school day.
@@ -309,14 +309,15 @@ only, not the school day.
 **Question update of 2026-11-09 (schema v3, `server/adapters/questions-v3.ts`).** The one
 exception to "belongs to the admin": the revised questions above reach an existing database once,
 as migration v3. It matches questions by their old starter text alone (a renamed topic does not
-stop it), so only a question the admin has reworded stays as it is:
-- the five "heute" questions above get "in der Mittagsinsel";
-- "Hattest du genug Zeit zum Essen?" becomes core;
-- "Was isst du am liebsten?", "Wie laut war es beim Essen?", "Was hast du heute gemacht?",
-  "Was möchtest du öfter machen?" and "Gibt es genug Spielsachen und Material?" are switched off
-  (`active = 0`), never deleted, so their answers stay in the results;
-- "Spielst du lieber drinnen oder draußen?" (🏠 Drinnen, 🌳 Draußen) is added right after the
-  "gefallen" question, in whatever topic holds it, unless a question with that text already exists.
+stop it), so only a question the admin has reworded stays as it is. Nothing is switched off or
+deleted ("Sonderfragen" are the `extended` questions):
+- the six "heute" questions above get "in der Mittagsinsel";
+- "Hattest du genug Zeit zum Essen?" becomes core, "Was hast du heute gemacht?" extended;
+- "Warst du heute in der Mittagsinsel mehr draußen, drinnen oder etwa gleich?" (🌳 Draußen,
+  🏠 Drinnen, ⚖️ Etwa gleich; core) is added right after the "gefallen" question, and
+  "Spielst du lieber drinnen oder draußen?" (🏠 Drinnen, 🌳 Draußen; extended) at the end of that
+  topic — in whatever topic holds the "gefallen" question, and each only unless a question with
+  that text already exists.
 The new texts are voiced by the server-start run of "Fehlende vertonen".
 
 ## API Endpoints

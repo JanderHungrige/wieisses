@@ -1,5 +1,5 @@
 // Migration v3, the question update of 2026-11-09 (doc 01, "Starter content"): a v2 database with the
-// old starter questions comes out with the revised ones; anything the admin edited is left alone.
+// old starter questions comes out with the revised ones; anything the admin reworded is left alone.
 import { afterEach, describe, expect, it } from 'vitest';
 import type { QuestionKind } from '../../shared/catalog.ts';
 import { insertOption, insertQuestion, insertTopic } from '../../server/adapters/content-write.ts';
@@ -8,7 +8,9 @@ import { seedIfEmpty } from '../../server/seed.ts';
 import { THURSDAY } from './harness.ts';
 
 const now = new Date(THURSDAY);
-type Row = { topic: string; text: string; frequency: string; sort: number; active: number };
+const OUTSIDE_TODAY = 'Warst du heute in der Mittagsinsel mehr draußen, drinnen oder etwa gleich?';
+const OUTSIDE_RATHER = 'Spielst du lieber drinnen oder draußen?';
+type Row = { topic: string; text: string; frequency: string; active: number };
 
 let db: Db;
 afterEach(() => db.close());
@@ -31,11 +33,15 @@ async function v2With(topics: Record<string, [kind: QuestionKind, text: string, 
 
 function questions(): Row[] {
   return db
-    .prepare('SELECT t.name AS topic, q.text, q.frequency, q.sort, q.active FROM question q JOIN topic t ON t.id = q.topic_id ORDER BY t.sort, q.sort, q.id')
+    .prepare('SELECT t.name AS topic, q.text, q.frequency, q.active FROM question q JOIN topic t ON t.id = q.topic_id ORDER BY t.sort, q.sort, q.id')
     .all() as Row[];
 }
 
-const active = (topic: string) => questions().filter((q) => q.topic === topic && q.active === 1).map((q) => q.text);
+/** The topic's questions in kiosk order, as "core: …" / "extended: …". */
+const shown = (topic: string) => questions().filter((q) => q.topic === topic).map((q) => `${q.frequency}: ${q.text}`);
+
+const optionsOf = (text: string) =>
+  db.prepare('SELECT o.icon, o.label FROM answer_option o JOIN question q ON q.id = o.question_id WHERE q.text = ? ORDER BY o.sort').all(text);
 
 const OLD_STARTER = {
   Essen: [
@@ -67,68 +73,87 @@ describe('migration v3 — the questions of 2026-11-09', () => {
     db = await v2With(OLD_STARTER);
     expect(await migrate(db, null, now)).toBe(2);
     expect(schemaVersion(db)).toBe(SCHEMA_VERSION);
-    expect(active('Essen')).toEqual(['Wie hat dir das Essen heute geschmeckt?', 'Bist du satt geworden?', 'Hattest du genug Zeit zum Essen?']);
-    expect(questions().find((q) => q.text === 'Hattest du genug Zeit zum Essen?')?.frequency).toBe('core');
-    expect(active('Hausaufgaben')).toEqual(['Wie gut konntest du heute in der Mittagsinsel deine Hausaufgaben machen?', 'War es ruhig genug zum Arbeiten?']);
-    expect(active('Miteinander')).toEqual([
-      'Hast du dich heute in der Mittagsinsel wohlgefühlt?',
-      'Haben dir die Erwachsenen heute in der Mittagsinsel zugehört?',
-      'Hat dich heute in der Mittagsinsel jemand gelobt?',
+    expect(shown('Essen')).toEqual([
+      'core: Wie hat dir das Essen heute geschmeckt?',
+      'core: Bist du satt geworden?',
+      'extended: Was isst du am liebsten?',
+      'core: Hattest du genug Zeit zum Essen?',
+      'extended: Wie laut war es beim Essen?',
     ]);
-    expect(active('Spielen & Basteln')).toEqual(['Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?', 'Spielst du lieber drinnen oder draußen?']);
+    expect(shown('Hausaufgaben')).toEqual(['core: Wie gut konntest du heute in der Mittagsinsel deine Hausaufgaben machen?', 'extended: War es ruhig genug zum Arbeiten?']);
+    expect(shown('Miteinander')).toEqual([
+      'core: Hast du dich heute in der Mittagsinsel wohlgefühlt?',
+      'core: Haben dir die Erwachsenen heute in der Mittagsinsel zugehört?',
+      'extended: Hat dich heute in der Mittagsinsel jemand gelobt?',
+    ]);
+    expect(shown('Spielen & Basteln')).toEqual([
+      'core: Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?',
+      `core: ${OUTSIDE_TODAY}`,
+      'extended: Was hast du heute in der Mittagsinsel gemacht?',
+      'extended: Was möchtest du öfter machen?',
+      'extended: Gibt es genug Spielsachen und Material?',
+      `extended: ${OUTSIDE_RATHER}`,
+    ]);
   });
 
-  it('switches dropped questions off instead of deleting them', async () => {
+  it('switches nothing off', async () => {
     db = await v2With(OLD_STARTER);
     await migrate(db, null, now);
-    const off = questions().filter((q) => q.active === 0).map((q) => q.text);
-    expect(off).toEqual([
-      'Was isst du am liebsten?',
-      'Wie laut war es beim Essen?',
-      'Was hast du heute gemacht?',
-      'Was möchtest du öfter machen?',
-      'Gibt es genug Spielsachen und Material?',
-    ]);
+    expect(questions().every((q) => q.active === 1)).toBe(true);
   });
 
-  it('gives "drinnen oder draußen" its two options, once', async () => {
+  it('gives the two new questions their options, once', async () => {
     db = await v2With(OLD_STARTER);
     await migrate(db, null, now);
-    const options = db
-      .prepare("SELECT o.label, o.icon FROM answer_option o JOIN question q ON q.id = o.question_id WHERE q.text = 'Spielst du lieber drinnen oder draußen?' ORDER BY o.sort")
-      .all();
-    expect(options).toEqual([{ label: 'Drinnen', icon: '🏠' }, { label: 'Draußen', icon: '🌳' }]);
+    expect(optionsOf(OUTSIDE_TODAY)).toEqual([
+      { icon: '🌳', label: 'Draußen' },
+      { icon: '🏠', label: 'Drinnen' },
+      { icon: '⚖️', label: 'Etwa gleich' },
+    ]);
+    expect(optionsOf(OUTSIDE_RATHER)).toEqual([{ icon: '🏠', label: 'Drinnen' }, { icon: '🌳', label: 'Draußen' }]);
   });
 
   it('leaves reworded questions alone, but not those in a renamed topic', async () => {
     db = await v2With({
-      Mittagessen: [['choice', 'Was isst du am allerliebsten?', true], ['choice', 'Wie laut war es beim Essen?', true]],
+      Mittagessen: [['choice', 'Was isst du am allerliebsten?', true], ['yesno', 'Hattest du genug Zeit zum Essen?', true]],
       Miteinander: [['scale5', 'Hast du dich wohlgefühlt?']],
       Spielen: [['scale5', 'Wie hat dir heute gefallen, was du gemacht hast?']],
     });
     await migrate(db, null, now);
-    expect(questions().map(({ topic, text, active: on }) => [topic, text, on])).toEqual([
-      ['Mittagessen', 'Was isst du am allerliebsten?', 1],
-      ['Mittagessen', 'Wie laut war es beim Essen?', 0],
-      ['Miteinander', 'Hast du dich wohlgefühlt?', 1],
-      ['Spielen', 'Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?', 1],
-      ['Spielen', 'Spielst du lieber drinnen oder draußen?', 1],
+    expect(shown('Mittagessen')).toEqual(['extended: Was isst du am allerliebsten?', 'core: Hattest du genug Zeit zum Essen?']);
+    expect(shown('Miteinander')).toEqual(['core: Hast du dich wohlgefühlt?']);
+    expect(shown('Spielen')).toEqual([
+      'core: Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?',
+      `core: ${OUTSIDE_TODAY}`,
+      `extended: ${OUTSIDE_RATHER}`,
     ]);
   });
 
-  it('adds no second "drinnen oder draußen" when the admin already made one', async () => {
-    db = await v2With({ Spielen: [['scale5', 'Wie hat dir heute gefallen, was du gemacht hast?'], ['choice', 'Spielst du lieber drinnen oder draußen?']] });
+  it('adds no new question when the admin already made one with that text', async () => {
+    db = await v2With({ Spielen: [['scale5', 'Wie hat dir heute gefallen, was du gemacht hast?'], ['choice', OUTSIDE_RATHER]] });
     await migrate(db, null, now);
-    expect(questions().filter((q) => q.text === 'Spielst du lieber drinnen oder draußen?')).toHaveLength(1);
-    expect(db.prepare('SELECT label FROM answer_option').all()).toEqual([{ label: 'Nudeln' }]);
+    expect(questions().filter((q) => q.text === OUTSIDE_RATHER)).toHaveLength(1);
+    expect(optionsOf(OUTSIDE_RATHER)).toEqual([{ icon: '🍝', label: 'Nudeln' }]);
+  });
+
+  it('adds nothing when the "gefallen" question was reworded', async () => {
+    db = await v2With({ Spielen: [['scale5', 'Wie war dein Tag?']] });
+    await migrate(db, null, now);
+    expect(shown('Spielen')).toEqual(['core: Wie war dein Tag?']);
   });
 
   it('seeds a fresh database straight with the revised questions', async () => {
     db = openDatabase(':memory:');
     await migrate(db, null, now);
     expect(seedIfEmpty(db, now)).toBe(true);
-    expect(questions().every((q) => q.active === 1)).toBe(true);
-    expect(active('Essen')).toHaveLength(3);
-    expect(active('Spielen & Basteln')).toEqual(['Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?', 'Spielst du lieber drinnen oder draußen?']);
+    expect(shown('Essen').filter((q) => q.startsWith('core'))).toHaveLength(3);
+    expect(shown('Spielen & Basteln')).toEqual([
+      'core: Wie hat dir heute in der Mittagsinsel gefallen, was du gemacht hast?',
+      `core: ${OUTSIDE_TODAY}`,
+      'extended: Was hast du heute in der Mittagsinsel gemacht?',
+      'extended: Was möchtest du öfter machen?',
+      'extended: Gibt es genug Spielsachen und Material?',
+      `extended: ${OUTSIDE_RATHER}`,
+    ]);
   });
 });
