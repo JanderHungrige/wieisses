@@ -79,6 +79,30 @@ export const OptionCreate = OptionSchema.omit({ id: true, questionId: true }).ex
 export const OptionPatch = OptionSchema.omit({ id: true, questionId: true }).partial();
 export type AnswerOption = z.infer<typeof OptionSchema>;
 
+// The question tool's change list (doc 04): the editor's payloads, one entry per edit. A `ref`
+// names an item created earlier in the same list, so later entries can point at it.
+const ref = z.string().trim().min(1).max(40);
+const target = z.union([id, ref]);
+export const ContentChange = z.discriminatedUnion('op', [
+  z.object({ op: z.literal('topic.create'), ref: ref.optional(), topic: TopicCreate }),
+  z.object({ op: z.literal('topic.update'), id, patch: TopicPatch }),
+  z.object({ op: z.literal('topic.delete'), id }),
+  z.object({
+    op: z.literal('question.create'),
+    ref: ref.optional(),
+    topic: target,
+    question: QuestionCreate,
+    options: z.array(OptionCreate).max(30).default([]),
+  }),
+  z.object({ op: z.literal('question.update'), id, patch: QuestionPatch }),
+  z.object({ op: z.literal('question.delete'), id }),
+  z.object({ op: z.literal('option.create'), question: target, option: OptionCreate }),
+  z.object({ op: z.literal('option.update'), id, patch: OptionPatch }),
+  z.object({ op: z.literal('option.delete'), id }),
+]);
+export const ContentChangeList = z.array(ContentChange).min(1).max(200);
+export type ContentChange = z.output<typeof ContentChange>;
+
 // ── Settings ───────────────────────────────────────────────────────────────
 
 export const SettingsSchema = z.object({

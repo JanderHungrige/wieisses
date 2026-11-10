@@ -30,7 +30,10 @@ Node 24 + TypeScript (run directly, type stripping), built-in `node:sqlite`, Pre
 - `npm run typecheck` — web + server
 - `npm run dev:server` — API on http://localhost:8092 (dev password `dev-password-123`, data in `.data/`)
 - `npm run dev` — Vite on http://localhost:5173, proxies the API
-- `DATA_DIR=.data node dev/demo-answers.ts` — eight weeks of demo answers for the dashboard
+- `DATA_DIR=.data node server/ops/demo.ts add` — eight weeks of removable demo answers for the dashboard
+  (`remove` takes them out again; doc 04)
+- `DATA_DIR=.data node server/ops/questions.ts export` / `apply [--yes]` — the question tool (doc 04); live it
+  runs over SSH: `ssh jan@159.195.148.193 'docker exec -i wieisses-prod-app-1 node server/ops/questions.ts …'`
 - `ADMIN_PASSWORD=… docker compose up --build` — app + Thorsten voice on http://localhost:8082
 - Voice alone for dev: `docker build -t wieisses-voice:local voice/ && docker run --rm -p 127.0.0.1:5050:5000 wieisses-voice:local`,
   then start the API with `VOICE_URL=http://127.0.0.1:5050`

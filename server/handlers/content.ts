@@ -20,6 +20,9 @@ import {
 import type { App } from '../context.ts';
 import { HttpError, created, noContent, ok, type Reply } from '../http/reply.ts';
 
+/** What the editing handlers need — also all the question tool (doc 04) has. */
+export type ContentDeps = Pick<App, 'db' | 'now'>;
+
 function notFound(what: string): HttpError {
   return new HttpError(404, 'not_found', `${what} gibt es nicht.`);
 }
@@ -54,26 +57,26 @@ export function listTopics(app: App): Reply {
   return ok(voiced);
 }
 
-export function createTopic(app: App, input: z.output<typeof TopicCreate>): Reply {
+export function createTopic(app: ContentDeps, input: z.output<typeof TopicCreate>): Reply {
   return created(insertTopic(app.db, input, app.now()));
 }
 
-export function updateTopic(app: App, id: number, patch: z.output<typeof TopicPatch>): Reply {
+export function updateTopic(app: ContentDeps, id: number, patch: z.output<typeof TopicPatch>): Reply {
   const topic = patchTopic(app.db, id, patch);
   if (!topic) throw notFound('Dieses Thema');
   return ok(topic);
 }
 
-export function removeTopic(app: App, id: number): Reply {
+export function removeTopic(app: ContentDeps, id: number): Reply {
   return deleted(deleteTopic(app.db, id), 'Dieses Thema');
 }
 
-export function createQuestion(app: App, topicId: number, input: z.output<typeof QuestionCreate>): Reply {
+export function createQuestion(app: ContentDeps, topicId: number, input: z.output<typeof QuestionCreate>): Reply {
   if (!getTopic(app.db, topicId)) throw notFound('Dieses Thema');
   return created(insertQuestion(app.db, topicId, input, app.now()));
 }
 
-export function updateQuestion(app: App, id: number, patch: z.output<typeof QuestionPatch>): Reply {
+export function updateQuestion(app: ContentDeps, id: number, patch: z.output<typeof QuestionPatch>): Reply {
   const current = getQuestion(app.db, id);
   if (!current) throw notFound('Diese Frage');
   const kind = patch.kind ?? current.kind;
@@ -84,11 +87,11 @@ export function updateQuestion(app: App, id: number, patch: z.output<typeof Ques
   return ok(patchQuestion(app.db, id, { ...patch, multi }));
 }
 
-export function removeQuestion(app: App, id: number): Reply {
+export function removeQuestion(app: ContentDeps, id: number): Reply {
   return deleted(deleteQuestion(app.db, id), 'Diese Frage');
 }
 
-export function createOption(app: App, questionId: number, input: z.output<typeof OptionCreate>): Reply {
+export function createOption(app: ContentDeps, questionId: number, input: z.output<typeof OptionCreate>): Reply {
   const question = getQuestion(app.db, questionId);
   if (!question) throw notFound('Diese Frage');
   if (question.kind !== 'choice') {
@@ -97,12 +100,12 @@ export function createOption(app: App, questionId: number, input: z.output<typeo
   return created(insertOption(app.db, questionId, input));
 }
 
-export function updateOption(app: App, id: number, patch: z.output<typeof OptionPatch>): Reply {
+export function updateOption(app: ContentDeps, id: number, patch: z.output<typeof OptionPatch>): Reply {
   const option = patchOption(app.db, id, patch);
   if (!option) throw notFound('Diese Antwort');
   return ok(option);
 }
 
-export function removeOption(app: App, id: number): Reply {
+export function removeOption(app: ContentDeps, id: number): Reply {
   return deleted(deleteOption(app.db, id), 'Diese Antwort');
 }

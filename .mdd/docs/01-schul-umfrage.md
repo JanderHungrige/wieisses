@@ -3,7 +3,7 @@ id: 01-schul-umfrage
 title: Schul-Umfrage — tablet survey for primary school children with admin panel
 edition: wieisses
 depends_on: []
-relates: [02-springy-naturlook, 03-installierbare-app]
+relates: [02-springy-naturlook, 03-installierbare-app, 04-fragen-werkzeug]
 source_files:
   - shared/catalog.ts
   - shared/phrases.ts
@@ -93,7 +93,6 @@ source_files:
   - web/admin/pages/QuestionEditor.tsx
   - web/admin/pages/Settings.tsx
   - web/admin/pages/TopicResults.tsx
-  - dev/demo-answers.ts
   - Dockerfile
   - docker-compose.yml
   - deploy/compose.app.yml
