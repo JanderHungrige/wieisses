@@ -128,10 +128,7 @@ export async function migrate(db: Db, backupDir: string | null, now: Date): Prom
   const from = schemaVersion(db);
   if (from === SCHEMA_VERSION) return from;
   if (from > SCHEMA_VERSION) throw new Error(`database schema ${from} is newer than this build (${SCHEMA_VERSION})`);
-  if (from > 0 && backupDir) {
-    mkdirSync(backupDir, { recursive: true });
-    await backup(db, join(backupDir, `pre-migration-v${from}-${now.toISOString().replace(/[:.]/g, '-')}.sqlite`));
-  }
+  if (from > 0 && backupDir) await backupDatabase(db, backupDir, `pre-migration-v${from}`, now);
   for (let version = from; version < SCHEMA_VERSION; version++) {
     transaction(db, () => {
       db.exec(MIGRATIONS[version] ?? '');
@@ -141,15 +138,30 @@ export async function migrate(db: Db, backupDir: string | null, now: Date): Prom
   return from;
 }
 
-/** Runs `work` in a write transaction taken up front (BEGIN IMMEDIATE), so a check-then-insert cannot race. */
+/** An online copy of the database as `<dir>/<label>-<timestamp>.sqlite`; returns its path. */
+export async function backupDatabase(db: Db, dir: string, label: string, now: Date): Promise<string> {
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, `${label}-${now.toISOString().replace(/[:.]/g, '-')}.sqlite`);
+  await backup(db, file);
+  return file;
+}
+
+let savepoints = 0;
+
+/**
+ * Runs `work` in a write transaction taken up front (BEGIN IMMEDIATE), so a check-then-insert
+ * cannot race. Inside an open transaction it nests as a savepoint: a failure undoes only `work`.
+ */
 export function transaction<T>(db: Db, work: () => T): T {
-  db.exec('BEGIN IMMEDIATE');
+  const nested = db.isTransaction;
+  const name = `nested_${++savepoints}`;
+  db.exec(nested ? `SAVEPOINT ${name}` : 'BEGIN IMMEDIATE');
   try {
     const result = work();
-    db.exec('COMMIT');
+    db.exec(nested ? `RELEASE ${name}` : 'COMMIT');
     return result;
   } catch (err) {
-    db.exec('ROLLBACK');
+    db.exec(nested ? `ROLLBACK TO ${name}; RELEASE ${name}` : 'ROLLBACK');
     throw err;
   }
 }
