@@ -144,6 +144,7 @@ models:
   - setting
   - voice_clip
 test_files:
+  - tests/unit/speech.test.ts
   - tests/unit/day.test.ts
   - tests/unit/codes.test.ts
   - tests/unit/answers.test.ts
@@ -161,7 +162,7 @@ test_files:
   - voice/test_audio.py
   - voice/test_kokoro_voice.py
 data_flow: greenfield
-last_synced: 2026-11-09
+last_synced: 2026-11-10
 status: complete
 phase: all
 mdd_version: 11
@@ -408,7 +409,10 @@ which the server never grants.
    its config it **fetches every clip once into memory** (blob URLs, 3 at a time, in the
    background; clips no longer in the config are released), so a clip — and every part of a
    composed sentence — starts without a network round trip; a clip not fetched yet plays from
-   its URL.
+   its URL. **The browser's speech synthesis is best effort:** every call into it
+   (`getVoices`, `speak`, `cancel`, the `voiceschanged` listener) is guarded, so a browser that
+   throws there (Brave on iOS, whose fingerprinting protection replaces `getVoices()`) only
+   loses the synthesis fallback — loading the kiosk and the Thorsten clips carry on (B1).
 8. **A new version arrives between two children.** A tablet keeps running the code it loaded,
    so whenever the kiosk goes back to the start screen (after "Tschüss", idle, or "Alles
    geschafft") it first fetches `/` again and compares the built files it references
@@ -668,4 +672,6 @@ pronounced" text per question (Thorsten reads the displayed text).
 
 ## Bugs
 
-(none yet — populated by /mdd bug when issues are reported)
+| ID | Description | Status | Fixed In | Reported | Fixed |
+|----|-------------|--------|----------|----------|-------|
+| B1 | Brave on iPad/iPhone: on first load the kiosk shows the 📡 screen "undefined is not an object (evaluating 'Object.getPrototypeOf(voice)')"; "Nochmal versuchen" works. `getVoices()` throws inside the browser (Brave's fingerprinting script, not our code) while the voice list is still empty, and `initSpeech()` runs inside `load()`'s try block, so the kiosk takes it for a lost connection. | Completed | web/lib/speech.ts:44 | 2026-11-10 | 2026-11-10 |

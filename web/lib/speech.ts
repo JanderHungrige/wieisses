@@ -37,8 +37,20 @@ export function isSpeaking(): boolean {
 
 const synth = (): SpeechSynthesis | undefined => ('speechSynthesis' in window ? window.speechSynthesis : undefined);
 
+/**
+ * Every call into the browser's speech synthesis goes through here: a browser that throws there
+ * (Brave on iOS, from getVoices() on first load) only loses the synthesis fallback (doc 01, B1).
+ */
+function guarded<T>(call: () => T, fallback: T): T {
+  try {
+    return call();
+  } catch {
+    return fallback;
+  }
+}
+
 function chooseVoice(): void {
-  const german = (synth()?.getVoices() ?? []).filter((v) => v.lang.toLowerCase().startsWith('de'));
+  const german = guarded(() => synth()?.getVoices() ?? [], []).filter((v) => v.lang.toLowerCase().startsWith('de'));
   voice = german.find((v) => v.localService && v.lang === 'de-DE') ?? german.find((v) => v.lang === 'de-DE') ?? german[0];
 }
 
@@ -68,7 +80,7 @@ export function initSpeech(speechRate: number, voiceClips: Record<string, string
   clips = voiceClips;
   void held.prefetch(Object.values(voiceClips));
   chooseVoice();
-  synth()?.addEventListener('voiceschanged', chooseVoice);
+  guarded(() => synth()?.addEventListener('voiceschanged', chooseVoice), undefined);
 }
 
 /** Call from inside a tap handler ("Los geht's"): unlocks audio and speech on iOS. */
@@ -77,7 +89,7 @@ export function unlockAudio(): void {
     player.src = silence();
     player.play().catch(() => undefined);
   }
-  synth()?.speak(new SpeechSynthesisUtterance(''));
+  guarded(() => synth()?.speak(new SpeechSynthesisUtterance('')), undefined);
 }
 
 export function hasGermanVoice(): boolean {
@@ -113,13 +125,17 @@ function play(url: string, finish: () => void): void {
 function speak(text: string, finish: () => void): void {
   const s = synth();
   if (!s) return finish();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'de-DE';
-  utterance.rate = rate;
-  if (voice) utterance.voice = voice;
-  utterance.onend = finish;
-  utterance.onerror = finish;
-  s.speak(utterance);
+  const started = guarded(() => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'de-DE';
+    utterance.rate = rate;
+    if (voice) utterance.voice = voice;
+    utterance.onend = finish;
+    utterance.onerror = finish;
+    s.speak(utterance);
+    return true;
+  }, false);
+  if (!started) finish(); // refused: on to the next item now, not after the watchdog
 }
 
 const itemFor = (text: string): Item => {
@@ -131,7 +147,7 @@ export function stopSpeech(): void {
   queue = [];
   setBusy(false);
   turn++;
-  synth()?.cancel();
+  guarded(() => synth()?.cancel(), undefined);
   if (player) {
     player.onended = null;
     player.onerror = null;

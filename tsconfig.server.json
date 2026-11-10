@@ -8,5 +8,7 @@
     "jsx": "preserve",
     "erasableSyntaxOnly": true
   },
-  "include": ["server", "shared", "tests", "dev", "vitest.config.ts"]
+  "include": ["server", "shared", "tests", "dev", "vitest.config.ts"],
+  // runs browser code against a stubbed window: checked with the DOM types of tsconfig.json
+  "exclude": ["tests/unit/speech.test.ts"]
 }
